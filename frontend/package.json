@@ -1,13 +1,16 @@
 {
-  "name": "fontend",
+  "name": "@veterans-connection/frontend",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "biome check",
-    "format": "biome format --write"
+    "lint": "biome check --write",
+    "lint:check": "biome check",
+    "format": "biome format --write",
+    "format:check": "biome format ",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "next": "16.1.1",
