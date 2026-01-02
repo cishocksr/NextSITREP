@@ -28,7 +28,7 @@ logs/
 # Database
 *.db
 
-#DOCS
+# DOCS
 TODO.md
 
 frontend_react
