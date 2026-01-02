@@ -7,34 +7,34 @@ on:
     branches: [main, develop]
 
 env:
-  JAVA_VERSION: '21'
-  NODE_VERSION: '20'
+  JAVA_VERSION: "21"
+  NODE_VERSION: "20"
 
 jobs:
   # Backend CI Job
   backend:
     name: Backend CI (Java ${{ matrix.java }})
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
-        java: ['21']
-    
+        java: ["21"]
+
     defaults:
       run:
         working-directory: ./backend
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up JDK ${{ matrix.java }}
         uses: actions/setup-java@v4
         with:
           java-version: ${{ matrix.java }}
-          distribution: 'temurin'
-          cache: 'maven'
-      
+          distribution: "temurin"
+          cache: "maven"
+
       - name: Cache Maven packages
         uses: actions/cache@v4
         with:
@@ -42,7 +42,7 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
-      
+
       - name: Verify Maven wrapper
         run: |
           if [ ! -f "./mvnw" ]; then
@@ -50,17 +50,17 @@ jobs:
             exit 1
           fi
           chmod +x ./mvnw
-      
+
       - name: Build with Maven
         run: ./mvnw clean compile -B
-      
+
       - name: Run tests
         run: ./mvnw test -B
-      
+
       - name: Generate test report
         if: always()
         run: ./mvnw surefire-report:report -B
-      
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -73,20 +73,20 @@ jobs:
   frontend:
     name: Frontend CI (Bun)
     runs-on: ubuntu-latest
-    
+
     defaults:
       run:
-        working-directory: ./fontend
-    
+        working-directory: ./frontend
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-      
+
       - name: Cache Bun dependencies
         uses: actions/cache@v4
         with:
@@ -96,24 +96,24 @@ jobs:
           key: ${{ runner.os }}-bun-${{ hashFiles('fontend/bun.lock') }}
           restore-keys: |
             ${{ runner.os }}-bun-
-      
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
-      
+
       - name: Run Biome linting
         run: bun run lint:check
-      
+
       - name: Run Biome format check
         run: bun run format:check
-      
+
       - name: Type check
         run: bunx tsc --noEmit
-      
+
       - name: Build Next.js
         run: bun run build
         env:
           NEXT_PUBLIC_API_URL: http://localhost:8080/api
-      
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -127,13 +127,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: [backend, frontend]
     if: always()
-    
+
     steps:
       - name: Check job results
         run: |
           echo "Backend Status: ${{ needs.backend.result }}"
           echo "Frontend Status: ${{ needs.frontend.result }}"
-          
+
           if [[ "${{ needs.backend.result }}" != "success" ]] || [[ "${{ needs.frontend.result }}" != "success" ]]; then
             echo "❌ Quality gate failed"
             exit 1
