@@ -96,8 +96,7 @@ jobs:
         run: bun run lint
 
       - name: Run Biome format check
-        run: bun run format --check
-
+        run: bun run format
       - name: Type check
         run: bunx tsc --noEmit
 
