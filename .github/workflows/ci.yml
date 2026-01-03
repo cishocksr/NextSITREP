@@ -93,7 +93,7 @@ jobs:
           path: |
             ~/.bun/install/cache
             fontend/node_modules
-          key: ${{ runner.os }}-bun-${{ hashFiles('fontend/bun.lock') }}
+          key: ${{ runner.os }}-bun-${{ hashFiles('frontend/bun.lock') }}
           restore-keys: |
             ${{ runner.os }}-bun-
 

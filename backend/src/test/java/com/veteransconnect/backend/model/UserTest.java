@@ -7,11 +7,13 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@DataJpaTest
 @DisplayName("User Entity Tests")
 class UserTest {
 
