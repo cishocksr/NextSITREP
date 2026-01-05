@@ -1,4 +1,4 @@
-package com.veteransconnect.backend;
+package com.veteransconnect;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
