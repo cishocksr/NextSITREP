@@ -9,9 +9,31 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface UserRepository extends JpaRepository<User, UUID> {
+    /**
+     * @param email
+     * @return {@link Optional<User>}
+     * @author cishocksr
+     * @date 2026/01/06 02:16
+     */
     Optional<User> findByEmail(String email);
 
+    /**
+     *
+     *
+     * @param email
+     * @return boolean
+     */
     boolean existsByEmail(String email);
 
+    /**
+     *
+     *
+     * @param branch
+     * @return {@link List<User>}
+     */
     List<User> findByBranchOfService(BranchOfService branch);
+
+    List<User> findByZipCode(String zipCode);
+
 }
+
