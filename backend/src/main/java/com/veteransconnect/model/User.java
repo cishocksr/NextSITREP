@@ -46,7 +46,7 @@ public class User {
     @Column(name = "branch_of_service", nullable = false, length = 50)
     private BranchOfService branchOfService;
 
-    @NotNull(message = "Zip code is required")
+    @NotBlank (message = "Zip code is required")
     @Size(max = 10, message = "Zip code must be less than 10 characters")
     @Column(name = "zip_code", length = 10)
     private String zipCode;
