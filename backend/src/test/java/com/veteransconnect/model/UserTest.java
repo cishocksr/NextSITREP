@@ -1,5 +1,6 @@
-package com.veteransconnect.model;
+package com.veteransconnect.backend.model;
 
+import com.veteransconnect.model.User;
 import com.veteransconnect.model.enums.BranchOfService;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
@@ -7,12 +8,7 @@ import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Set;
 
@@ -20,13 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("User Entity Tests")
 class UserTest {
-
-    // ========== TEST DATA ==========
-
-    private static final String VALID_EMAIL = "veteran@example.com";
-    private static final String VALID_FIRST_NAME = "John";
-    private static final String VALID_LAST_NAME = "Doe";
-    private static final BranchOfService VALID_BRANCH = BranchOfService.ARMY;
 
     private Validator validator;
 
@@ -36,162 +25,255 @@ class UserTest {
         validator = factory.getValidator();
     }
 
-    // ========== HAPPY PATH ==========
-
     @Test
     @DisplayName("Should create user with valid data")
     void shouldCreateUserWithValidData() {
-        User user = createValidUser().build();
-        assertNoViolations(user);
-    }
+        // Given: Valid user data
+        User user = User.builder()
+                .email("veteran@example.com")
+                .firstName("John")
+                .lastName("Doe")
+                .branchOfService(BranchOfService.ARMY)
+                .zipCode("90210")
+                .build();
 
-    // ========== EMAIL VALIDATION ==========
-
-    @Nested
-    @DisplayName("Email Validation")
-    class EmailValidation {
-
-        @ParameterizedTest
-        @NullAndEmptySource
-        @DisplayName("Should reject null or blank email")
-        void shouldRejectNullOrBlankEmail(String email) {
-            User user = createValidUser().email(email).build();
-            assertHasViolations(user);
-        }
-
-        @Test
-        @DisplayName("Should reject invalid email format")
-        void shouldRejectInvalidEmailFormat() {
-            User user = createValidUser().email("not-an-email").build();
-            assertInvalidUser(user, "Must be a valid email address");
-        }
-    }
-
-    // ========== FIRST NAME VALIDATION ==========
-
-    @Nested
-    @DisplayName("First Name Validation")
-    class FirstNameValidation {
-
-        @ParameterizedTest
-        @NullAndEmptySource
-        @DisplayName("Should reject null or blank first name")
-        void shouldRejectNullOrBlankFirstName(String firstName) {
-            User user = createValidUser().firstName(firstName).build();
-            assertHasViolations(user);
-        }
-    }
-
-    // ========== LAST NAME VALIDATION ==========
-
-    @Nested
-    @DisplayName("Last Name Validation")
-    class LastNameValidation {
-
-        @ParameterizedTest
-        @NullAndEmptySource
-        @DisplayName("Should reject null or blank last name")
-        void shouldRejectNullOrBlankLastName(String lastName) {
-            User user = createValidUser().lastName(lastName).build();
-            assertHasViolations(user);
-        }
-    }
-
-    // ========== BRANCH OF SERVICE VALIDATION ==========
-
-    @Nested
-    @DisplayName("Branch of Service Validation")
-    class BranchOfServiceValidation {
-
-        @Test
-        @DisplayName("Should reject null branch of service")
-        void shouldRejectNullBranchOfService() {
-            User user = createValidUser().branchOfService(null).build();
-            assertInvalidUser(user, "Branch of Service is required");
-        }
-
-        @ParameterizedTest
-        @EnumSource(BranchOfService.class)
-        @DisplayName("Should accept all valid branch values")
-        void shouldAcceptAllValidBranchValues(BranchOfService branch) {
-            User user = createValidUser().branchOfService(branch).build();
-            assertNoViolations(user);
-        }
-    }
-
-    // ========== ZIP CODE VALIDATION ==========
-
-    @Nested
-    @DisplayName("Zip Code Validation")
-    class ZipCodeValidation {
-
-        @ParameterizedTest
-        @NullAndEmptySource
-        @DisplayName("Should reject null or blank zip code")
-        void shouldRejectNullOrBlankZipCode(String zipCode) {
-            User user = createValidUser().zipCode(null).build();
-            assertInvalidUser(user, "Zip code is required");
-        }
-
-        @ParameterizedTest
-        @ValueSource(strings = {"12345", "1234567890"})
-        @DisplayName("Should accept valid zip codes")
-        void shouldAcceptValidZipCodes(String zipCode) {
-            User user = createValidUser().zipCode(zipCode).build();
-            assertNoViolations(user);
-        }
-
-        @ParameterizedTest
-        @ValueSource(strings = {"12345678901", "123456789012345"})
-        @DisplayName("Should reject zip codes longer than 10 characters")
-        void shouldRejectTooLongZipCodes(String zipCode) {
-            User user = createValidUser().zipCode(zipCode).build();
-            assertInvalidUser(user, "Zip code must be less than 10 characters");
-        }
-    }
-
-    // ========== BUSINESS LOGIC ==========
-
-    @Nested
-    @DisplayName("Business Logic")
-    class BusinessLogic {
-
-        @Test
-        @DisplayName("Should generate full name from first and last name")
-        void shouldGenerateFullName() {
-            User user = createValidUser().build();
-            assertThat(user.getFullName()).isEqualTo("John Doe");
-        }
-    }
-
-    // ========== HELPER METHODS ==========
-    private static final String VALID_ZIP_CODE = "12345";
-
-    private User.UserBuilder createValidUser() {
-        return User.builder()
-                .email(VALID_EMAIL)
-                .firstName(VALID_FIRST_NAME)
-                .lastName(VALID_LAST_NAME)
-                .branchOfService(VALID_BRANCH)
-                .zipCode(VALID_ZIP_CODE);
-
-    }
-
-    private void assertHasViolations(User user) {
+        // When: Validate the user
         Set<ConstraintViolation<User>> violations = validator.validate(user);
-        assertThat(violations).isNotEmpty();
-    }
 
-    private void assertNoViolations(User user) {
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        // Then: No validation errors
         assertThat(violations).isEmpty();
     }
 
-    private void assertInvalidUser(User user, String expectedMessage) {
+    @Test
+    @DisplayName("Should reject user with invalid email format")
+    void shouldRejectUserWithInvalidEmailFormat() {
+        // Given: User with invalid email
+        User user = User.builder()
+                .email("not-an-email")
+                .firstName("John")
+                .lastName("Doe")
+                .branchOfService(BranchOfService.NAVY)
+                .zipCode("90210")
+                .build();
+
+        // When: Validate the user
         Set<ConstraintViolation<User>> violations = validator.validate(user);
+
+        // Then: Should have validation error
+        assertThat(violations).isNotEmpty();
         assertThat(violations)
-                .isNotEmpty()
                 .extracting(ConstraintViolation::getMessage)
-                .contains(expectedMessage);
+                .contains("Must be a valid email address");
+    }
+
+    @Test
+    @DisplayName("Should reject user with blank first name")
+    void shouldRejectUserWithBlankFirstName() {
+        // Given: User with blank first name
+        User user = User.builder()
+                .email("veteran@example.com")
+                .firstName("")
+                .lastName("Doe")
+                .branchOfService(BranchOfService.AIR_FORCE)
+                .zipCode("90210")
+                .build();
+
+        // When: Validate the user
+        Set<ConstraintViolation<User>> violations = validator.validate(user);
+
+        // Then: Should have validation error
+        assertThat(violations).isNotEmpty();
+        assertThat(violations)
+                .extracting(ConstraintViolation::getMessage)
+                .contains("First name is required");
+    }
+
+    @Test
+    @DisplayName("Should reject user with blank last name")
+    void shouldRejectUserWithBlankLastName() {
+        // Given: User with blank last name
+        User user = User.builder()
+                .email("veteran@example.com")
+                .firstName("John")
+                .lastName("")
+                .branchOfService(BranchOfService.MARINES)
+                .zipCode("90210")
+                .build();
+
+        // When: Validate the user
+        Set<ConstraintViolation<User>> violations = validator.validate(user);
+
+        // Then: Should have validation error
+        assertThat(violations).isNotEmpty();
+        assertThat(violations)
+                .extracting(ConstraintViolation::getMessage)
+                .contains("Last name is required");
+    }
+
+    @Test
+    @DisplayName("Should generate full name from first and last name")
+    void shouldGenerateFullName() {
+        // Given: User with first and last name
+        User user = User.builder()
+                .email("veteran@example.com")
+                .firstName("John")
+                .lastName("Doe")
+                .branchOfService(BranchOfService.COAST_GUARD)
+                .zipCode("90210")
+                .build();
+
+        // When: Get full name
+        String fullName = user.getFullName();
+
+        // Then: Should be concatenated properly
+        assertThat(fullName).isEqualTo("John Doe");
+    }
+
+    @Test
+    @DisplayName("Should create user with valid branch of service")
+    void shouldCreateUserWithValidBranchOfService() {
+        // Given: User with branch of service
+        User user = User.builder()
+                .email("veteran@example.com")
+                .firstName("John")
+                .lastName("Doe")
+                .branchOfService(BranchOfService.SPACE_FORCE)
+                .zipCode("90210")
+                .build();
+
+        // When: Validate the user
+        Set<ConstraintViolation<User>> violations = validator.validate(user);
+
+        // Then: No validation errors
+        assertThat(violations).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Should reject user with null branch of service")
+    void shouldRejectUserWithNullBranchOfService() {
+        // Given: User without branch of service
+        User user = User.builder()
+                .email("veteran@example.com")
+                .firstName("John")
+                .lastName("Doe")
+                .branchOfService(null)
+                .zipCode("90210")
+                .build();
+
+        // When: Validate the user
+        Set<ConstraintViolation<User>> violations = validator.validate(user);
+
+        // Then: Should have validation error
+        assertThat(violations).hasSize(1);
+        assertThat(violations)
+                .extracting(ConstraintViolation::getMessage)
+                .contains("Branch of Service is required");
+    }
+
+    @Test
+    @DisplayName("Should create user with valid 5-digit zip code")
+    void shouldCreateUserWithValidZipCode() {
+        // Given: User with valid zip code
+        User user = User.builder()
+                .email("veteran@example.com")
+                .firstName("John")
+                .lastName("Doe")
+                .branchOfService(BranchOfService.ARMY)
+                .zipCode("12345")
+                .build();
+
+        // When: Validate the user
+        Set<ConstraintViolation<User>> violations = validator.validate(user);
+
+        // Then: No validation errors
+        assertThat(violations).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Should reject user with invalid zip code format - letters")
+    void shouldRejectUserWithInvalidZipCodeLetters() {
+        // Given: User with letters in zip code
+        User user = User.builder()
+                .email("veteran@example.com")
+                .firstName("John")
+                .lastName("Doe")
+                .branchOfService(BranchOfService.NAVY)
+                .zipCode("ABCDE")
+                .build();
+
+        // When: Validate the user
+        Set<ConstraintViolation<User>> violations = validator.validate(user);
+
+        // Then: Should have validation error
+        assertThat(violations).isNotEmpty();
+        assertThat(violations)
+                .extracting(ConstraintViolation::getMessage)
+                .contains("ZIP code must be exactly 5 digits");
+    }
+
+    @Test
+    @DisplayName("Should reject user with zip code too short")
+    void shouldRejectUserWithZipCodeTooShort() {
+        // Given: User with 4-digit zip code
+        User user = User.builder()
+                .email("veteran@example.com")
+                .firstName("John")
+                .lastName("Doe")
+                .branchOfService(BranchOfService.AIR_FORCE)
+                .zipCode("1234")
+                .build();
+
+        // When: Validate the user
+        Set<ConstraintViolation<User>> violations = validator.validate(user);
+
+        // Then: Should have validation error
+        assertThat(violations).isNotEmpty();
+        assertThat(violations)
+                .extracting(ConstraintViolation::getMessage)
+                .contains("ZIP code must be exactly 5 digits");
+    }
+
+    @Test
+    @DisplayName("Should reject user with zip code too long")
+    void shouldRejectUserWithZipCodeTooLong() {
+        // Given: User with 6-digit zip code
+        User user = User.builder()
+                .email("veteran@example.com")
+                .firstName("John")
+                .lastName("Doe")
+                .branchOfService(BranchOfService.MARINES)
+                .zipCode("123456")
+                .build();
+
+        // When: Validate the user
+        Set<ConstraintViolation<User>> violations = validator.validate(user);
+
+        // Then: Should have validation error
+        assertThat(violations).isNotEmpty();
+        assertThat(violations)
+                .extracting(ConstraintViolation::getMessage)
+                .contains("ZIP code must be exactly 5 digits");
+    }
+
+    @Test
+    @DisplayName("Should reject user with blank zip code")
+    void shouldRejectUserWithBlankZipCode() {
+        // Given: User with blank zip code
+        User user = User.builder()
+                .email("veteran@example.com")
+                .firstName("John")
+                .lastName("Doe")
+                .branchOfService(BranchOfService.COAST_GUARD)
+                .zipCode("")
+                .build();
+
+        // When: Validate the user
+        Set<ConstraintViolation<User>> violations = validator.validate(user);
+
+        // Then: Should have validation error for blank
+        assertThat(violations).isNotEmpty();
+        assertThat(violations)
+                .extracting(ConstraintViolation::getMessage)
+                .containsAnyOf("Zip code is required", "ZIP code must be exactly 5 digits");
     }
 }

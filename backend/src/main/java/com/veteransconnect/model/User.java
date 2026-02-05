@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Pattern;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -15,8 +15,6 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "users")
-@Getter
-@Setter
 @Data
 @Builder
 @NoArgsConstructor
@@ -46,9 +44,9 @@ public class User {
     @Column(name = "branch_of_service", nullable = false, length = 50)
     private BranchOfService branchOfService;
 
-    @NotBlank (message = "Zip code is required")
-    @Size(max = 10, message = "Zip code must be less than 10 characters")
-    @Column(name = "zip_code", length = 10)
+    @NotBlank(message = "Zip code is required")
+    @Pattern(regexp = "\\d{5}", message = "ZIP code must be exactly 5 digits")
+    @Column(name = "zip_code", length = 5)
     private String zipCode;
 
     @CreationTimestamp
@@ -62,9 +60,8 @@ public class User {
     /**
      * Get user's full name
      * @return concatenated first and last name
-     * */
+     */
     public String getFullName() {
         return firstName + " " + lastName;
     }
-
 }
