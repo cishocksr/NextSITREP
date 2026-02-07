@@ -1,4 +1,4 @@
-package com.veteransconnect.backend.model;
+package com.veteransconnect.model;
 
 import com.veteransconnect.model.User;
 import com.veteransconnect.model.enums.BranchOfService;

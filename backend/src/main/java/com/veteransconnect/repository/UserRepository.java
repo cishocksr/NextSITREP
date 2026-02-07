@@ -12,7 +12,7 @@ import java.util.UUID;
  * Repository interface for User entity database operations.
  * Spring Data JPA automatically provides implementation.
  */
-public interface UserRepository extends JpaRepository<User, Long> {
+public interface UserRepository extends JpaRepository<User, UUID> {
     /**
      * Find user by email address.
      * Used for authentication and checking email uniqueness.
