@@ -28,32 +28,49 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse registerUser(UserRegistrationRequest request) {
-        // TODO: Implement
-        throw new UnsupportedOperationException("Not implemented yet");
+        if (request.branchOfService() == null) {
+            throw new IllegalArgumentException("Invalid branch of service");
+        }
+
+        if (userRepository.existsByEmail(request.email())) {
+            throw new DuplicateEmailException("Email already registered: " + request.email());
+        }
+
+        User user = mapToEntity(request);
+        User savedUser = userRepository.save(user);
+        return mapToResponse(savedUser);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserResponse getUserById(UUID id) {
-        // TODO: Implement
-        throw new UnsupportedOperationException("Not implemented yet");
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
+        return mapToResponse(user);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserResponse getUserByEmail(String email) {
-        // TODO: Implement
-        throw new UnsupportedOperationException("Not implemented yet");
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
+        return mapToResponse(user);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<UserResponse> getUsersByBranch(BranchOfService branch) {
-        // TODO: Implement
-        throw new UnsupportedOperationException("Not implemented yet");
+        return userRepository.findByBranchOfService(branch).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<UserResponse> getUsersByZipCode(String zipCode) {
-        // TODO: Implement
-        throw new UnsupportedOperationException("Not implemented yet");
+        return userRepository.findByZipCode(zipCode).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     // ========== HELPER METHODS ==========
@@ -62,15 +79,19 @@ public class UserServiceImpl implements UserService {
      * Convert User entity to UserResponse DTO.
      */
     private UserResponse mapToResponse(User user) {
-        // TODO: Implement
-        throw new UnsupportedOperationException("Not implemented yet");
+        return UserResponse.from(user);
     }
 
     /**
      * Convert UserRegistrationRequest DTO to User entity.
      */
     private User mapToEntity(UserRegistrationRequest request) {
-        // TODO: Implement
-        throw new UnsupportedOperationException("Not implemented yet");
+        return User.builder()
+                .email(request.email())
+                .firstName(request.firstName())
+                .lastName(request.lastName())
+                .branchOfService(request.branchOfService())
+                .zipCode(request.zipCode())
+                .build();
     }
 }

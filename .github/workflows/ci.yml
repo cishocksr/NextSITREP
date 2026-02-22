@@ -92,7 +92,7 @@ jobs:
         with:
           path: |
             ~/.bun/install/cache
-            fontend/node_modules
+            frontend/node_modules
           key: ${{ runner.os }}-bun-${{ hashFiles('frontend/bun.lock') }}
           restore-keys: |
             ${{ runner.os }}-bun-
@@ -118,7 +118,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
-          path: fontend/.next/
+          path: frontend/.next/
           retention-days: 7
 
   # Code Quality Overview Job

@@ -2,6 +2,8 @@ package com.veteransconnect.service;
 
 import com.veteransconnect.dto.UserRegistrationRequest;
 import com.veteransconnect.dto.UserResponse;
+import com.veteransconnect.exception.DuplicateEmailException;
+import com.veteransconnect.exception.UserNotFoundException;
 import com.veteransconnect.model.User;
 import com.veteransconnect.model.enums.BranchOfService;
 import com.veteransconnect.repository.UserRepository;
@@ -38,13 +40,13 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
-        validRequest = UserRegistrationRequest.builder()
-                .email("veteran@example.com")
-                .firstName("John")
-                .lastName("Doe")
-                .branchOfService("Army")
-                .zipCode("12345")
-                .build();
+        validRequest = new UserRegistrationRequest(
+                "veteran@example.com",
+                "John",
+                "Doe",
+                BranchOfService.ARMY,
+                "12345"
+        );
 
         validUser = User.builder()
                 .id(UUID.randomUUID())
@@ -70,11 +72,11 @@ class UserServiceTest {
 
         // Then
         assertThat(response).isNotNull();
-        assertThat(response.getEmail()).isEqualTo(validRequest.getEmail());
-        assertThat(response.getFirstName()).isEqualTo(validRequest.getFirstName());
-        assertThat(response.getLastName()).isEqualTo(validRequest.getLastName());
+        assertThat(response.email()).isEqualTo(validRequest.email());
+        assertThat(response.firstName()).isEqualTo(validRequest.firstName());
+        assertThat(response.lastName()).isEqualTo(validRequest.lastName());
 
-        verify(userRepository).existsByEmail(validRequest.getEmail());
+        verify(userRepository).existsByEmail(validRequest.email());
         verify(userRepository).save(any(User.class));
     }
 
@@ -89,7 +91,7 @@ class UserServiceTest {
                 .isInstanceOf(DuplicateEmailException.class)
                 .hasMessageContaining("Email already registered");
 
-        verify(userRepository).existsByEmail(validRequest.getEmail());
+        verify(userRepository).existsByEmail(validRequest.email());
         verify(userRepository, never()).save(any(User.class));
     }
 
@@ -97,13 +99,13 @@ class UserServiceTest {
     @DisplayName("Should throw exception for invalid branch of service")
     void shouldThrowExceptionForInvalidBranchOfService() {
         // Given
-        UserRegistrationRequest invalidRequest = UserRegistrationRequest.builder()
-                .email("veteran@example.com")
-                .firstName("John")
-                .lastName("Doe")
-                .branchOfService("InvalidBranch")
-                .zipCode("12345")
-                .build();
+        UserRegistrationRequest invalidRequest = new UserRegistrationRequest(
+                "veteran@example.com",
+                "John",
+                "Doe",
+                null,
+                "12345"
+        );
 
         // When & Then
         assertThatThrownBy(() -> userService.registerUser(invalidRequest))
@@ -127,7 +129,7 @@ class UserServiceTest {
 
         // Then
         assertThat(response).isNotNull();
-        assertThat(response.getEmail()).isEqualTo(validUser.getEmail());
+        assertThat(response.email()).isEqualTo(validUser.getEmail());
         verify(userRepository).findById(userId);
     }
 
@@ -157,7 +159,7 @@ class UserServiceTest {
 
         // Then
         assertThat(response).isNotNull();
-        assertThat(response.getEmail()).isEqualTo(validUser.getEmail());
+        assertThat(response.email()).isEqualTo(validUser.getEmail());
         verify(userRepository).findByEmail("veteran@example.com");
     }
 
@@ -188,7 +190,7 @@ class UserServiceTest {
 
         // Then
         assertThat(responses).hasSize(1);
-        assertThat(responses.get(0).getEmail()).isEqualTo(validUser.getEmail());
+        assertThat(responses.get(0).email()).isEqualTo(validUser.getEmail());
         verify(userRepository).findByBranchOfService(BranchOfService.ARMY);
     }
 
@@ -204,7 +206,7 @@ class UserServiceTest {
 
         // Then
         assertThat(responses).hasSize(1);
-        assertThat(responses.get(0).getZipCode()).isEqualTo("12345");
+        assertThat(responses.get(0).zipCode()).isEqualTo("12345");
         verify(userRepository).findByZipCode("12345");
     }
 
