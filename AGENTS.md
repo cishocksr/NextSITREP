@@ -15,6 +15,9 @@ Veterans Connection is a full-stack app connecting US Military Veterans with res
 ### Database
 
 ```sh
+# Create env file first (required by Docker Compose variable substitution)
+cp .env.example .env
+
 # Start PostgreSQL (localhost:5432, db: veteran_connection, user/pass: postgres/postgres)
 docker-compose up -d
 ```

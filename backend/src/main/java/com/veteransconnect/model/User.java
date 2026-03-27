@@ -49,6 +49,12 @@ public class User {
     @Column(name = "zip_code", length = 5)
     private String zipCode;
 
+    // Stores the BCrypt hash of the user's password — NEVER the plaintext password.
+    // BCrypt hashes always start with "$2a$" and are 60 characters long.
+    // The column is named "password_hash" to make it clear this is not plaintext.
+    @Column(name = "password_hash", nullable = false)
+    private String passwordHash;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

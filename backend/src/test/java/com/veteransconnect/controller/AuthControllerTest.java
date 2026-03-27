@@ -1,0 +1,267 @@
+package com.veteransconnect.controller;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.veteransconnect.dto.AuthResponse;
+import com.veteransconnect.dto.LoginRequest;
+import com.veteransconnect.dto.UserRegistrationRequest;
+import com.veteransconnect.model.User;
+import com.veteransconnect.model.enums.BranchOfService;
+import com.veteransconnect.repository.UserRepository;
+import com.veteransconnect.security.JwtService;
+import com.veteransconnect.service.UserService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+/**
+ * Unit tests for AuthController.
+ *
+ * Tests the register and login endpoints in isolation from real authentication.
+ * Security is excluded via SecurityAutoConfiguration so we test controller
+ * logic without needing valid JWTs in the test requests.
+ */
+@WebMvcTest(
+        controllers = AuthController.class,
+        excludeAutoConfiguration = SecurityAutoConfiguration.class
+)
+@DisplayName("Auth Controller Tests")
+class AuthControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @MockitoBean
+    private UserService userService;
+
+    @MockitoBean
+    private UserRepository userRepository;
+
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private UserDetailsService userDetailsService;
+
+    @MockitoBean
+    private AuthenticationManager authenticationManager;
+
+    private UUID testUserId;
+    private UserRegistrationRequest validRegisterRequest;
+    private LoginRequest validLoginRequest;
+    private User testUser;
+    private UserDetails mockUserDetails;
+
+    @BeforeEach
+    void setUp() {
+        testUserId = UUID.randomUUID();
+
+        validRegisterRequest = new UserRegistrationRequest(
+                "veteran@example.com",
+                "John",
+                "Doe",
+                BranchOfService.ARMY,
+                "12345",
+                "SecurePass123"
+        );
+
+        validLoginRequest = new LoginRequest(
+                "veteran@example.com",
+                "SecurePass123"
+        );
+
+        testUser = User.builder()
+                .id(testUserId)
+                .email("veteran@example.com")
+                .firstName("John")
+                .lastName("Doe")
+                .branchOfService(BranchOfService.ARMY)
+                .zipCode("12345")
+                .passwordHash("$2a$10$hashedpasswordhere")
+                .build();
+
+        // A simple Spring Security UserDetails that represents our test user
+        mockUserDetails = org.springframework.security.core.userdetails.User.builder()
+                .username("veteran@example.com")
+                .password("$2a$10$hashedpasswordhere")
+                .roles("VETERAN")
+                .build();
+    }
+
+    // =========================================================
+    // POST /api/v1/auth/register
+    // =========================================================
+
+    @Nested
+    @DisplayName("POST /api/v1/auth/register")
+    class Register {
+
+        @Test
+        @DisplayName("Should return 201 Created with token on successful registration")
+        void shouldReturn201OnSuccess() throws Exception {
+            // Given — wire up all the mocks the controller will call
+            when(userDetailsService.loadUserByUsername("veteran@example.com"))
+                    .thenReturn(mockUserDetails);
+            when(jwtService.generateToken(any(UserDetails.class))).thenReturn("mock.jwt.token");
+            when(jwtService.getExpirationMs()).thenReturn(86400000L);
+            when(userRepository.findByEmail("veteran@example.com"))
+                    .thenReturn(Optional.of(testUser));
+
+            // When & Then
+            mockMvc.perform(post("/api/v1/auth/register")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(validRegisterRequest)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.token").value("mock.jwt.token"))
+                    .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                    .andExpect(jsonPath("$.email").value("veteran@example.com"))
+                    .andExpect(jsonPath("$.firstName").value("John"));
+        }
+
+        @Test
+        @DisplayName("Should return 400 Bad Request when email is invalid")
+        void shouldReturn400WhenEmailIsInvalid() throws Exception {
+            UserRegistrationRequest badRequest = new UserRegistrationRequest(
+                    "not-an-email",
+                    "John", "Doe",
+                    BranchOfService.ARMY,
+                    "12345",
+                    "SecurePass123"
+            );
+
+            mockMvc.perform(post("/api/v1/auth/register")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(badRequest)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("Should return 400 Bad Request when password is too short")
+        void shouldReturn400WhenPasswordTooShort() throws Exception {
+            UserRegistrationRequest badRequest = new UserRegistrationRequest(
+                    "veteran@example.com",
+                    "John", "Doe",
+                    BranchOfService.ARMY,
+                    "12345",
+                    "short"   // less than 8 characters — fails @Size(min = 8)
+            );
+
+            mockMvc.perform(post("/api/v1/auth/register")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(badRequest)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("Should return 400 Bad Request when zip code format is invalid")
+        void shouldReturn400WhenZipCodeIsInvalid() throws Exception {
+            UserRegistrationRequest badRequest = new UserRegistrationRequest(
+                    "veteran@example.com",
+                    "John", "Doe",
+                    BranchOfService.ARMY,
+                    "ABCDE",   // fails @Pattern(regexp = "\\d{5}")
+                    "SecurePass123"
+            );
+
+            mockMvc.perform(post("/api/v1/auth/register")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(badRequest)))
+                    .andExpect(status().isBadRequest());
+        }
+    }
+
+    // =========================================================
+    // POST /api/v1/auth/login
+    // =========================================================
+
+    @Nested
+    @DisplayName("POST /api/v1/auth/login")
+    class Login {
+
+        @Test
+        @DisplayName("Should return 200 OK with token on successful login")
+        void shouldReturn200OnSuccess() throws Exception {
+            // Given — mock successful authentication and token generation
+            when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                    .thenReturn(new UsernamePasswordAuthenticationToken(
+                            mockUserDetails, null, mockUserDetails.getAuthorities()
+                    ));
+            when(userDetailsService.loadUserByUsername("veteran@example.com"))
+                    .thenReturn(mockUserDetails);
+            when(jwtService.generateToken(any(UserDetails.class))).thenReturn("mock.jwt.token");
+            when(jwtService.getExpirationMs()).thenReturn(86400000L);
+            when(userRepository.findByEmail("veteran@example.com"))
+                    .thenReturn(Optional.of(testUser));
+
+            // When & Then
+            mockMvc.perform(post("/api/v1/auth/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(validLoginRequest)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.token").value("mock.jwt.token"))
+                    .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                    .andExpect(jsonPath("$.email").value("veteran@example.com"));
+        }
+
+        @Test
+        @DisplayName("Should return 401 Unauthorized when credentials are wrong")
+        void shouldReturn401WhenCredentialsAreWrong() throws Exception {
+            // Given — authenticationManager throws when credentials are bad
+            when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                    .thenThrow(new BadCredentialsException("Bad credentials"));
+
+            // When & Then
+            mockMvc.perform(post("/api/v1/auth/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(validLoginRequest)))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @DisplayName("Should return 400 Bad Request when email is blank")
+        void shouldReturn400WhenEmailIsBlank() throws Exception {
+            LoginRequest badRequest = new LoginRequest("", "SecurePass123");
+
+            mockMvc.perform(post("/api/v1/auth/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(badRequest)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("Should return 400 Bad Request when password is blank")
+        void shouldReturn400WhenPasswordIsBlank() throws Exception {
+            LoginRequest badRequest = new LoginRequest("veteran@example.com", "");
+
+            mockMvc.perform(post("/api/v1/auth/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(badRequest)))
+                    .andExpect(status().isBadRequest());
+        }
+    }
+}

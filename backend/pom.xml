@@ -83,6 +83,32 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!--
+		  JJWT — JSON Web Token library for Java.
+		  Split into three artifacts:
+		    jjwt-api    : the public API we code against (compile time)
+		    jjwt-impl   : the actual implementation (runtime only — keeps API clean)
+		    jjwt-jackson : handles JSON serialization of JWT claims via Jackson (runtime)
+		  We use version 0.12.x which has a modernized fluent builder API.
+		-->
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-api</artifactId>
+			<version>0.12.6</version>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-impl</artifactId>
+			<version>0.12.6</version>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-jackson</artifactId>
+			<version>0.12.6</version>
+			<scope>runtime</scope>
+		</dependency>
+
 	</dependencies>
 
 	<build>

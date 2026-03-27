@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 import java.util.Optional;
@@ -32,6 +33,13 @@ class UserServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    // UserServiceImpl now requires a PasswordEncoder — Mockito will inject this mock.
+    // We stub passwordEncoder.encode() in tests that exercise the registration path.
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
+    // @InjectMocks creates UserServiceImpl and injects the mocks above via constructor.
+    // Mockito matches by type: UserRepository → userRepository, PasswordEncoder → passwordEncoder.
     @InjectMocks
     private UserServiceImpl userService;
 
@@ -40,12 +48,14 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
+        // UserRegistrationRequest now includes password as the last field
         validRequest = new UserRegistrationRequest(
                 "veteran@example.com",
                 "John",
                 "Doe",
                 BranchOfService.ARMY,
-                "12345"
+                "12345",
+                "SecurePass123"   // plaintext — the service will encode this
         );
 
         validUser = User.builder()
@@ -55,6 +65,7 @@ class UserServiceTest {
                 .lastName("Doe")
                 .branchOfService(BranchOfService.ARMY)
                 .zipCode("12345")
+                .passwordHash("$2a$10$hashedpasswordhere")
                 .build();
     }
 
@@ -65,6 +76,8 @@ class UserServiceTest {
     void shouldRegisterNewUserSuccessfully() {
         // Given
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
+        // Stub the encoder so the service doesn't call the real BCrypt (slow in tests)
+        when(passwordEncoder.encode(anyString())).thenReturn("$2a$10$hashedpassword");
         when(userRepository.save(any(User.class))).thenReturn(validUser);
 
         // When
@@ -77,6 +90,8 @@ class UserServiceTest {
         assertThat(response.lastName()).isEqualTo(validRequest.lastName());
 
         verify(userRepository).existsByEmail(validRequest.email());
+        // Confirm the password was encoded before saving
+        verify(passwordEncoder).encode(validRequest.password());
         verify(userRepository).save(any(User.class));
     }
 
@@ -98,13 +113,14 @@ class UserServiceTest {
     @Test
     @DisplayName("Should throw exception for invalid branch of service")
     void shouldThrowExceptionForInvalidBranchOfService() {
-        // Given
+        // Given — null branch triggers early IllegalArgumentException
         UserRegistrationRequest invalidRequest = new UserRegistrationRequest(
                 "veteran@example.com",
                 "John",
                 "Doe",
-                null,
-                "12345"
+                null,           // invalid branch
+                "12345",
+                "SecurePass123"
         );
 
         // When & Then
@@ -120,14 +136,11 @@ class UserServiceTest {
     @Test
     @DisplayName("Should find user by ID")
     void shouldFindUserById() {
-        // Given
         UUID userId = UUID.randomUUID();
         when(userRepository.findById(userId)).thenReturn(Optional.of(validUser));
 
-        // When
         UserResponse response = userService.getUserById(userId);
 
-        // Then
         assertThat(response).isNotNull();
         assertThat(response.email()).isEqualTo(validUser.getEmail());
         verify(userRepository).findById(userId);
@@ -136,11 +149,9 @@ class UserServiceTest {
     @Test
     @DisplayName("Should throw exception when user not found by ID")
     void shouldThrowExceptionWhenUserNotFoundById() {
-        // Given
         UUID userId = UUID.randomUUID();
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
-        // When & Then
         assertThatThrownBy(() -> userService.getUserById(userId))
                 .isInstanceOf(UserNotFoundException.class)
                 .hasMessageContaining("User not found");
@@ -151,13 +162,10 @@ class UserServiceTest {
     @Test
     @DisplayName("Should find user by email")
     void shouldFindUserByEmail() {
-        // Given
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(validUser));
 
-        // When
         UserResponse response = userService.getUserByEmail("veteran@example.com");
 
-        // Then
         assertThat(response).isNotNull();
         assertThat(response.email()).isEqualTo(validUser.getEmail());
         verify(userRepository).findByEmail("veteran@example.com");
@@ -166,10 +174,8 @@ class UserServiceTest {
     @Test
     @DisplayName("Should throw exception when user not found by email")
     void shouldThrowExceptionWhenUserNotFoundByEmail() {
-        // Given
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
 
-        // When & Then
         assertThatThrownBy(() -> userService.getUserByEmail("nonexistent@example.com"))
                 .isInstanceOf(UserNotFoundException.class)
                 .hasMessageContaining("User not found");
@@ -180,15 +186,11 @@ class UserServiceTest {
     @Test
     @DisplayName("Should find users by branch of service")
     void shouldFindUsersByBranchOfService() {
-        // Given
         List<User> users = List.of(validUser);
-        when(userRepository.findByBranchOfService(BranchOfService.ARMY))
-                .thenReturn(users);
+        when(userRepository.findByBranchOfService(BranchOfService.ARMY)).thenReturn(users);
 
-        // When
         List<UserResponse> responses = userService.getUsersByBranch(BranchOfService.ARMY);
 
-        // Then
         assertThat(responses).hasSize(1);
         assertThat(responses.get(0).email()).isEqualTo(validUser.getEmail());
         verify(userRepository).findByBranchOfService(BranchOfService.ARMY);
@@ -197,14 +199,11 @@ class UserServiceTest {
     @Test
     @DisplayName("Should find users by zip code")
     void shouldFindUsersByZipCode() {
-        // Given
         List<User> users = List.of(validUser);
         when(userRepository.findByZipCode("12345")).thenReturn(users);
 
-        // When
         List<UserResponse> responses = userService.getUsersByZipCode("12345");
 
-        // Then
         assertThat(responses).hasSize(1);
         assertThat(responses.get(0).zipCode()).isEqualTo("12345");
         verify(userRepository).findByZipCode("12345");
@@ -213,14 +212,10 @@ class UserServiceTest {
     @Test
     @DisplayName("Should return empty list when no users in branch")
     void shouldReturnEmptyListWhenNoUsersInBranch() {
-        // Given
-        when(userRepository.findByBranchOfService(BranchOfService.NAVY))
-                .thenReturn(List.of());
+        when(userRepository.findByBranchOfService(BranchOfService.NAVY)).thenReturn(List.of());
 
-        // When
         List<UserResponse> responses = userService.getUsersByBranch(BranchOfService.NAVY);
 
-        // Then
         assertThat(responses).isEmpty();
         verify(userRepository).findByBranchOfService(BranchOfService.NAVY);
     }
@@ -228,13 +223,10 @@ class UserServiceTest {
     @Test
     @DisplayName("Should return empty list when no users in zip code")
     void shouldReturnEmptyListWhenNoUsersInZipCode() {
-        // Given
         when(userRepository.findByZipCode("99999")).thenReturn(List.of());
 
-        // When
         List<UserResponse> responses = userService.getUsersByZipCode("99999");
 
-        // Then
         assertThat(responses).isEmpty();
         verify(userRepository).findByZipCode("99999");
     }
