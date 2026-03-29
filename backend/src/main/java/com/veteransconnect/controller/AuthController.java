@@ -3,8 +3,7 @@ package com.veteransconnect.controller;
 import com.veteransconnect.dto.AuthResponse;
 import com.veteransconnect.dto.LoginRequest;
 import com.veteransconnect.dto.UserRegistrationRequest;
-import com.veteransconnect.model.User;
-import com.veteransconnect.repository.UserRepository;
+import com.veteransconnect.dto.UserResponse;
 import com.veteransconnect.security.JwtService;
 import com.veteransconnect.service.UserService;
 import jakarta.validation.Valid;
@@ -37,7 +36,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final UserService userService;
-    private final UserRepository userRepository;
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
     private final AuthenticationManager authenticationManager;
@@ -64,7 +62,7 @@ public class AuthController {
             @Valid @RequestBody UserRegistrationRequest request) {
 
         // Create the user — UserServiceImpl hashes the password before saving
-        userService.registerUser(request);
+       UserResponse user = userService.registerUser(request);
 
         // Load the saved user as a UserDetails object for JWT generation.
         // We use the email as the login identifier.
@@ -74,17 +72,16 @@ public class AuthController {
         String token = jwtService.generateToken(userDetails);
 
         // Load the full user entity so we can include info in the response
-        User user = userRepository.findByEmail(request.email())
-                .orElseThrow(); // Will not throw — we just saved them
+
 
         AuthResponse authResponse = AuthResponse.of(
                 token,
                 jwtService.getExpirationMs(),
-                user.getId(),
-                user.getEmail(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getBranchOfService()
+                user.id(),
+                user.email(),
+                user.firstName(),
+                user.lastName(),
+                user.branchOfService()
         );
 
         // 201 Created — a new resource (the user) was created
@@ -129,17 +126,16 @@ public class AuthController {
         String token = jwtService.generateToken(userDetails);
 
         // Load the full entity for the response payload
-        User user = userRepository.findByEmail(request.email())
-                .orElseThrow(); // Will not throw — authentication just confirmed they exist
+       UserResponse user = userService.getUserByEmail(request.email());
 
         AuthResponse authResponse = AuthResponse.of(
                 token,
                 jwtService.getExpirationMs(),
-                user.getId(),
-                user.getEmail(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getBranchOfService()
+                user.id(),
+                user.email(),
+                user.firstName(),
+                user.lastName(),
+                user.branchOfService()
         );
 
         return ResponseEntity.ok(authResponse);

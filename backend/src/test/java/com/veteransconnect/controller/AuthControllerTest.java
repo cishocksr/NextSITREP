@@ -2,11 +2,10 @@ package com.veteransconnect.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.veteransconnect.dto.AuthResponse;
+import com.veteransconnect.dto.UserResponse;
 import com.veteransconnect.dto.LoginRequest;
 import com.veteransconnect.dto.UserRegistrationRequest;
-import com.veteransconnect.model.User;
 import com.veteransconnect.model.enums.BranchOfService;
-import com.veteransconnect.repository.UserRepository;
 import com.veteransconnect.security.JwtService;
 import com.veteransconnect.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,12 +24,9 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -59,8 +55,6 @@ class AuthControllerTest {
     @MockitoBean
     private UserService userService;
 
-    @MockitoBean
-    private UserRepository userRepository;
 
     @MockitoBean
     private JwtService jwtService;
@@ -74,7 +68,7 @@ class AuthControllerTest {
     private UUID testUserId;
     private UserRegistrationRequest validRegisterRequest;
     private LoginRequest validLoginRequest;
-    private User testUser;
+    private UserResponse testUserResponse;
     private UserDetails mockUserDetails;
 
     @BeforeEach
@@ -95,15 +89,16 @@ class AuthControllerTest {
                 "SecurePass123"
         );
 
-        testUser = User.builder()
-                .id(testUserId)
-                .email("veteran@example.com")
-                .firstName("John")
-                .lastName("Doe")
-                .branchOfService(BranchOfService.ARMY)
-                .zipCode("12345")
-                .passwordHash("$2a$10$hashedpasswordhere")
-                .build();
+        testUserResponse = new UserResponse(
+                testUserId,
+                "veteran@example.com",
+                "John",
+                "Doe",
+                BranchOfService.ARMY,
+                "12345",
+                null,
+                null
+        );
 
         // A simple Spring Security UserDetails that represents our test user
         mockUserDetails = org.springframework.security.core.userdetails.User.builder()
@@ -129,8 +124,8 @@ class AuthControllerTest {
                     .thenReturn(mockUserDetails);
             when(jwtService.generateToken(any(UserDetails.class))).thenReturn("mock.jwt.token");
             when(jwtService.getExpirationMs()).thenReturn(86400000L);
-            when(userRepository.findByEmail("veteran@example.com"))
-                    .thenReturn(Optional.of(testUser));
+            when(userService.registerUser(any(UserRegistrationRequest.class)))
+                    .thenReturn(testUserResponse);
 
             // When & Then
             mockMvc.perform(post("/api/v1/auth/register")
@@ -215,9 +210,8 @@ class AuthControllerTest {
                     .thenReturn(mockUserDetails);
             when(jwtService.generateToken(any(UserDetails.class))).thenReturn("mock.jwt.token");
             when(jwtService.getExpirationMs()).thenReturn(86400000L);
-            when(userRepository.findByEmail("veteran@example.com"))
-                    .thenReturn(Optional.of(testUser));
-
+            when(userService.getUserByEmail("veteran@example.com"))
+                    .thenReturn(testUserResponse);
             // When & Then
             mockMvc.perform(post("/api/v1/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
