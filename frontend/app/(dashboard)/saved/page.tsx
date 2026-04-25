@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { SavedResourceCard } from "@/components/resources/SavedResourceCard";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { resourceApi } from "@/lib/api";
 import type { ResourceCategory, SavedResourceResponse } from "@/lib/types";
 import { CATEGORY_LABELS } from "@/lib/types";
@@ -15,7 +15,9 @@ export default function SavedPage() {
   const [resources, setResources] = useState<SavedResourceResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filterCategory, setFilterCategory] = useState<ResourceCategory | "">("");
+  const [filterCategory, setFilterCategory] = useState<ResourceCategory | "">(
+    "",
+  );
 
   useEffect(() => {
     async function load() {
@@ -23,7 +25,11 @@ export default function SavedPage() {
         const data = await resourceApi.getSaved();
         setResources(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load saved resources.");
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load saved resources.",
+        );
       } finally {
         setIsLoading(false);
       }
@@ -37,19 +43,18 @@ export default function SavedPage() {
 
   function handleUpdated(updated: SavedResourceResponse) {
     setResources((prev) =>
-      prev.map((r) => (r.id === updated.id ? updated : r))
+      prev.map((r) => (r.id === updated.id ? updated : r)),
     );
   }
 
   // Category filter tabs
   const categories = Array.from(
-    new Set(resources.map((r) => r.category))
+    new Set(resources.map((r) => r.category)),
   ) as ResourceCategory[];
 
-  const filtered =
-    filterCategory
-      ? resources.filter((r) => r.category === filterCategory)
-      : resources;
+  const filtered = filterCategory
+    ? resources.filter((r) => r.category === filterCategory)
+    : resources;
 
   return (
     <ProtectedRoute>
@@ -57,7 +62,9 @@ export default function SavedPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Saved Resources</h1>
+            <h1 className="text-2xl font-bold text-slate-900">
+              Saved Resources
+            </h1>
             <p className="text-slate-500 mt-1">
               {isLoading
                 ? "Loading…"
@@ -72,11 +79,17 @@ export default function SavedPage() {
         </div>
 
         {/* Loading */}
-        {isLoading && <LoadingSpinner message="Loading your saved resources…" />}
+        {isLoading && (
+          <LoadingSpinner message="Loading your saved resources…" />
+        )}
 
         {/* Error */}
         {error && !isLoading && (
-          <Alert variant="error" message={error} onDismiss={() => setError(null)} />
+          <Alert
+            variant="error"
+            message={error}
+            onDismiss={() => setError(null)}
+          />
         )}
 
         {/* Empty state */}
@@ -87,13 +100,11 @@ export default function SavedPage() {
               No saved resources yet
             </h3>
             <p className="text-slate-500 max-w-sm mx-auto mb-6">
-              Search for VA facilities and services, then save the ones that
-              are relevant to you.
+              Search for VA facilities and services, then save the ones that are
+              relevant to you.
             </p>
             <Link href="/resources">
-              <Button className="bg-blue-600 hover:bg-blue-500 text-white border-transparent">
-                Search Resources
-              </Button>
+              <Button>Search Resources</Button>
             </Link>
           </div>
         )}
@@ -103,6 +114,7 @@ export default function SavedPage() {
           <>
             <div className="flex flex-wrap gap-2 mb-6">
               <button
+                type="button"
                 onClick={() => setFilterCategory("")}
                 className={[
                   "px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
@@ -114,10 +126,13 @@ export default function SavedPage() {
                 All ({resources.length})
               </button>
               {categories.map((cat) => {
-                const count = resources.filter((r) => r.category === cat).length;
+                const count = resources.filter(
+                  (r) => r.category === cat,
+                ).length;
                 return (
                   <button
                     key={cat}
+                    type="button"
                     onClick={() =>
                       setFilterCategory(cat === filterCategory ? "" : cat)
                     }

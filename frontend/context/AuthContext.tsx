@@ -8,8 +8,8 @@ import {
   useEffect,
   useState,
 } from "react";
-import { clearAuth, getStoredUser, saveAuth } from "@/lib/auth";
-import { authApi } from "@/lib/api";
+import { authApi, setOnUnauthorized } from "@/lib/api";
+import { clearAuth, getStoredUser, getToken, saveAuth } from "@/lib/auth";
 import type {
   AuthResponse,
   BranchOfService,
@@ -41,14 +41,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const logout = useCallback(() => {
+    clearAuth();
+    setUser(null);
+    router.push("/");
+  }, [router]);
+
   // Rehydrate from localStorage on mount
   useEffect(() => {
+    const token = getToken();
     const stored = getStoredUser();
-    if (stored) {
+    if (token && stored) {
       setUser(stored);
     }
     setIsLoading(false);
-  }, []);
+    setOnUnauthorized(logout);
+  }, [logout]);
+
+  // Proactive expiry timer — log out when the token actually expires
+  useEffect(() => {
+    if (!user) return;
+    const expiry = localStorage.getItem("vc_expiry");
+    if (!expiry) return;
+    const ms = parseInt(expiry, 10) - Date.now();
+    if (ms <= 0) return;
+    const timer = setTimeout(logout, ms);
+    return () => clearTimeout(timer);
+  }, [user, logout]);
 
   const handleAuthResponse = useCallback((auth: AuthResponse) => {
     saveAuth(auth);
@@ -67,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       handleAuthResponse(auth);
       router.push("/resources");
     },
-    [handleAuthResponse, router]
+    [handleAuthResponse, router],
   );
 
   const register = useCallback(
@@ -76,14 +95,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       handleAuthResponse(auth);
       router.push("/resources");
     },
-    [handleAuthResponse, router]
+    [handleAuthResponse, router],
   );
-
-  const logout = useCallback(() => {
-    clearAuth();
-    setUser(null);
-    router.push("/");
-  }, [router]);
 
   return (
     <AuthContext.Provider

@@ -13,6 +13,12 @@ import type {
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
 
+let onUnauthorized: (() => void) | null = null;
+export function setOnUnauthorized(fn: () => void) {
+  onUnauthorized = fn;
+
+}
+
 // ─── Core Fetch Wrapper ───────────────────────────────────────────────────────
 
 async function request<T>(
@@ -37,11 +43,8 @@ async function request<T>(
 
   // Unauthorised → clear local session
   if (res.status === 401) {
-    clearAuth();
-    if (typeof window !== "undefined") {
-      window.location.href = "/login";
-    }
-    throw new Error("Session expired. Please log in again.");
+   
+   onUnauthorized?.();
   }
 
   if (!res.ok) {

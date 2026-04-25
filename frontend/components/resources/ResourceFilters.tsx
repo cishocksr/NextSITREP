@@ -40,7 +40,12 @@ export function ResourceFilters({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!zipCode || zipCode.length !== 5) return;
-    onSearch({ zipCode, category: category || undefined, keyword: keyword || undefined, radius: Number(radius) });
+    onSearch({
+      zipCode,
+      category: category || undefined,
+      keyword: keyword || undefined,
+      radius: Number(radius),
+    });
   }
 
   return (
@@ -65,9 +70,7 @@ export function ResourceFilters({
           options={categoryOptions}
           placeholder="All categories"
           value={category}
-          onChange={(e) =>
-            setCategory(e.target.value as ResourceCategory | "")
-          }
+          onChange={(e) => setCategory(e.target.value as ResourceCategory | "")}
         />
 
         <Input
@@ -85,11 +88,7 @@ export function ResourceFilters({
         />
 
         <div className="flex items-end xl:col-span-1">
-          <Button
-            type="submit"
-            isLoading={isLoading}
-            className="w-full bg-blue-600 hover:bg-blue-500 text-white border-transparent"
-          >
+          <Button type="submit" isLoading={isLoading} className="w-full">
             Search
           </Button>
         </div>

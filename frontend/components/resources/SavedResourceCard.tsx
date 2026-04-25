@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { NotesModal } from "./NotesModal";
+import { resourceApi } from "@/lib/api";
 import type { SavedResourceResponse } from "@/lib/types";
 import { CATEGORY_COLORS, CATEGORY_LABELS } from "@/lib/types";
-import { resourceApi } from "@/lib/api";
+import { NotesModal } from "./NotesModal";
 
 interface SavedResourceCardProps {
   resource: SavedResourceResponse;
@@ -24,7 +24,8 @@ export function SavedResourceCard({
   const [showFullNotes, setShowFullNotes] = useState(false);
 
   async function handleRemove() {
-    if (!confirm(`Remove "${resource.name}" from your saved resources?`)) return;
+    if (!confirm(`Remove "${resource.name}" from your saved resources?`))
+      return;
     setIsRemoving(true);
     try {
       await resourceApi.unsave(resource.id);
@@ -35,7 +36,12 @@ export function SavedResourceCard({
     }
   }
 
-  const addressLine = [resource.address, resource.city, resource.state, resource.zipCode]
+  const addressLine = [
+    resource.address,
+    resource.city,
+    resource.state,
+    resource.zipCode,
+  ]
     .filter(Boolean)
     .join(", ");
 
@@ -72,21 +78,30 @@ export function SavedResourceCard({
         <div className="flex flex-col gap-1.5 text-sm text-slate-600">
           {addressLine && (
             <div className="flex items-start gap-2">
-              <span className="shrink-0 text-slate-400" aria-hidden>📍</span>
+              <span className="shrink-0 text-slate-400" aria-hidden>
+                📍
+              </span>
               <span>{addressLine}</span>
             </div>
           )}
           {resource.phone && (
             <div className="flex items-center gap-2">
-              <span className="shrink-0 text-slate-400" aria-hidden>📞</span>
-              <a href={`tel:${resource.phone}`} className="text-blue-600 hover:underline">
+              <span className="shrink-0 text-slate-400" aria-hidden>
+                📞
+              </span>
+              <a
+                href={`tel:${resource.phone}`}
+                className="text-blue-600 hover:underline"
+              >
                 {resource.phone}
               </a>
             </div>
           )}
           {resource.website && (
             <div className="flex items-center gap-2">
-              <span className="shrink-0 text-slate-400" aria-hidden>🌐</span>
+              <span className="shrink-0 text-slate-400" aria-hidden>
+                🌐
+              </span>
               <a
                 href={resource.website}
                 target="_blank"
@@ -103,7 +118,9 @@ export function SavedResourceCard({
         {hasNotes && (
           <div className="rounded-lg bg-amber-50 border border-amber-200 p-3">
             <div className="flex items-center gap-1.5 mb-1.5">
-              <span className="text-xs font-medium text-amber-700">📝 Your notes</span>
+              <span className="text-xs font-medium text-amber-700">
+                📝 Your notes
+              </span>
             </div>
             <p className="text-xs text-amber-800 whitespace-pre-wrap leading-relaxed font-mono">
               {showFullNotes ? resource.notes : notesPreview}
@@ -111,6 +128,7 @@ export function SavedResourceCard({
             </p>
             {notesTruncated && (
               <button
+                type="button"
                 className="text-xs text-amber-600 hover:text-amber-700 mt-1 font-medium"
                 onClick={() => setShowFullNotes(!showFullNotes)}
               >
@@ -131,11 +149,10 @@ export function SavedResourceCard({
             {hasNotes ? "Edit Notes" : "Add Notes"}
           </Button>
           <Button
-            variant="ghost"
+            variant="dangerGhost"
             size="sm"
             isLoading={isRemoving}
             onClick={handleRemove}
-            className="text-red-500 hover:text-red-600 hover:bg-red-50"
           >
             Remove
           </Button>

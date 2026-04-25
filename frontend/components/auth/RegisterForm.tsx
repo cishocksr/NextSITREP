@@ -1,21 +1,21 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { useAuth } from "@/context/AuthContext";
+import { useState } from "react";
+import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { Alert } from "@/components/ui/Alert";
+import { useAuth } from "@/context/AuthContext";
 import type { BranchOfService } from "@/lib/types";
 import { BRANCH_LABELS } from "@/lib/types";
 
-const branchOptions = (
-  Object.keys(BRANCH_LABELS) as BranchOfService[]
-).map((key) => ({
-  value: key,
-  label: BRANCH_LABELS[key],
-}));
+const branchOptions = (Object.keys(BRANCH_LABELS) as BranchOfService[]).map(
+  (key) => ({
+    value: key,
+    label: BRANCH_LABELS[key],
+  }),
+);
 
 export function RegisterForm() {
   const { register } = useAuth();
@@ -65,7 +65,9 @@ export function RegisterForm() {
       });
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Registration failed. Please try again."
+        err instanceof Error
+          ? err.message
+          : "Registration failed. Please try again.",
       );
     } finally {
       setIsLoading(false);
@@ -82,7 +84,7 @@ export function RegisterForm() {
         />
       )}
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid gap-4 sm:grid-cols-2">
         <Input
           label="First name"
           autoComplete="given-name"
@@ -111,7 +113,7 @@ export function RegisterForm() {
         placeholder="you@example.com"
       />
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid gap-4 sm:grid-cols-2">
         <Select
           label="Branch of service"
           required
@@ -157,7 +159,7 @@ export function RegisterForm() {
         type="submit"
         size="lg"
         isLoading={isLoading}
-        className="w-full mt-1 bg-blue-600 hover:bg-blue-500 text-white border-transparent"
+        className="w-full mt-1"
       >
         Create Account
       </Button>

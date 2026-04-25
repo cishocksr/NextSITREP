@@ -43,9 +43,8 @@ export default function LandingPage() {
             <span>Built for those who served</span>
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-            Find Veterans{" "}
-            <span className="text-blue-400">Resources</span>{" "}
-            Near You
+            Find Veterans <span className="text-blue-400">Resources</span> Near
+            You
           </h1>
           <p className="mx-auto max-w-2xl text-lg sm:text-xl text-slate-300 mb-10">
             VeteransConnect helps you quickly discover healthcare, benefits,
@@ -54,12 +53,16 @@ export default function LandingPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/register">
-              <Button size="lg" variant="primary" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500">
+              <Button size="lg" variant="primary" className="w-full sm:w-auto">
                 Create Free Account
               </Button>
             </Link>
             <Link href="/login">
-              <Button size="lg" variant="secondary" className="w-full sm:w-auto border-slate-400 text-white hover:bg-white/10">
+              <Button
+                size="lg"
+                variant="heroSecondary"
+                className="w-full sm:w-auto"
+              >
                 Sign In
               </Button>
             </Link>
@@ -141,9 +144,7 @@ export default function LandingPage() {
           It&apos;s free. No spam. Just resources for veterans, by veterans.
         </p>
         <Link href="/register">
-          <Button size="lg" className="bg-blue-600 hover:bg-blue-500 text-white">
-            Get Started — It&apos;s Free
-          </Button>
+          <Button size="lg">Get Started — It&apos;s Free</Button>
         </Link>
       </section>
 

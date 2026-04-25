@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { useAuth } from "@/context/AuthContext";
+import { useState } from "react";
+import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Alert } from "@/components/ui/Alert";
+import { useAuth } from "@/context/AuthContext";
 
 export function LoginForm() {
   const { login } = useAuth();
@@ -22,7 +22,7 @@ export function LoginForm() {
       await login({ email, password });
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Invalid email or password."
+        err instanceof Error ? err.message : "Invalid email or password.",
       );
     } finally {
       setIsLoading(false);
@@ -63,7 +63,7 @@ export function LoginForm() {
         type="submit"
         size="lg"
         isLoading={isLoading}
-        className="w-full mt-1 bg-blue-600 hover:bg-blue-500 text-white border-transparent"
+        className="w-full mt-1"
       >
         Sign In
       </Button>
