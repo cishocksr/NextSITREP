@@ -96,7 +96,7 @@ class UserTest {
                 .email("veteran@example.com")
                 .firstName("John")
                 .lastName("")
-                .branchOfService(BranchOfService.MARINES)
+                .branchOfService(BranchOfService.MARINE_CORPS)
                 .zipCode("90210")
                 .build();
 
@@ -241,7 +241,7 @@ class UserTest {
                 .email("veteran@example.com")
                 .firstName("John")
                 .lastName("Doe")
-                .branchOfService(BranchOfService.MARINES)
+                .branchOfService(BranchOfService.MARINE_CORPS)
                 .zipCode("123456")
                 .build();
 

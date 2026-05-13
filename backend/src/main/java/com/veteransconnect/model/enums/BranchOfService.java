@@ -7,7 +7,7 @@ public enum BranchOfService {
     ARMY("Army"),
     NAVY("Navy"),
     AIR_FORCE("Air Force"),
-    MARINES("Marines"),
+    MARINE_CORPS("Marine Corps"),
     COAST_GUARD("Coast Guard"),
     SPACE_FORCE("Space Force");
 

@@ -88,6 +88,7 @@ public class SecurityConfig {
                 //   POST /api/v1/auth/register  — create an account
                 //   POST /api/v1/auth/login     — get a JWT
                 .requestMatchers("/api/v1/auth/**").permitAll()
+                .requestMatchers("/actuator/health").permitAll()
 
                 // Every other request requires a valid JWT.
                 // If no token (or an invalid one) is provided, Spring returns 403.
