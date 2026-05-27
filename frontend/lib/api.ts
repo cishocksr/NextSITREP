@@ -1,11 +1,11 @@
-import { clearAuth, getToken } from "./auth";
+import { getToken } from "./auth";
 import type {
   AuthResponse,
   LoginRequest,
   ResourceSearchParams,
   ResourceSearchResult,
-  SaveResourceRequest,
   SavedResourceResponse,
+  SaveResourceRequest,
   UpdateNotesRequest,
   UserRegistrationRequest,
 } from "./types";
@@ -16,15 +16,11 @@ const BASE_URL =
 let onUnauthorized: (() => void) | null = null;
 export function setOnUnauthorized(fn: () => void) {
   onUnauthorized = fn;
-
 }
 
 // ─── Core Fetch Wrapper ───────────────────────────────────────────────────────
 
-async function request<T>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T> {
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
 
   const headers: Record<string, string> = {
@@ -33,7 +29,7 @@ async function request<T>(
   };
 
   if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+    headers.Authorization = `Bearer ${token}`;
   }
 
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -43,8 +39,7 @@ async function request<T>(
 
   // Unauthorised → clear local session
   if (res.status === 401) {
-   
-   onUnauthorized?.();
+    onUnauthorized?.();
   }
 
   if (!res.ok) {
@@ -109,7 +104,10 @@ export const resourceApi = {
     });
   },
 
-  updateNotes(id: string, data: UpdateNotesRequest): Promise<SavedResourceResponse> {
+  updateNotes(
+    id: string,
+    data: UpdateNotesRequest,
+  ): Promise<SavedResourceResponse> {
     return request(`/api/v1/resources/saved/${id}/notes`, {
       method: "PATCH",
       body: JSON.stringify(data),

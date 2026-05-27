@@ -4,7 +4,6 @@ const EXPIRY_KEY = "vc_expiry";
 const TOKEN_KEY = "vc_token";
 const USER_KEY = "vc_user";
 
-
 export function saveAuth(auth: AuthResponse): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(TOKEN_KEY, auth.token);
@@ -17,7 +16,7 @@ export function saveAuth(auth: AuthResponse): void {
       firstName: auth.firstName,
       lastName: auth.lastName,
       branchOfService: auth.branchOfService,
-    })
+    }),
   );
 }
 
@@ -26,7 +25,7 @@ export function getToken(): string | null {
   const token = localStorage.getItem(TOKEN_KEY);
   const expiry = localStorage.getItem(EXPIRY_KEY);
   if (!token || !expiry) return null;
-  if (Date.now() > parseInt(expiry)) {
+  if (Date.now() > parseInt(expiry, 10)) {
     clearAuth();
     return null;
   }

@@ -4,7 +4,7 @@ public enum PreferredContactMethod {
     EMAIL("Email"),
     PHONE("Phone"),
     TEXT("Text"),
-    NO_PREFERENCE("No Preference")
+    NO_PREFERENCE("No Preference");
 
     private final String displayName;
 
@@ -15,7 +15,7 @@ public enum PreferredContactMethod {
     public String getDisplayName() {
         return displayName;
     }
-    public static PreferredContactMethod frommDisplayName(String displayName) {
+    public static PreferredContactMethod fromDisplayName(String displayName) {
         for (PreferredContactMethod method: values()) {
             if(method.displayName.equalsIgnoreCase(displayName)) {
                 return method;

@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
-import { ResourceFilters } from "@/components/resources/ResourceFilters";
 import { ResourceCard } from "@/components/resources/ResourceCard";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { ResourceFilters } from "@/components/resources/ResourceFilters";
 import { Alert } from "@/components/ui/Alert";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { resourceApi } from "@/lib/api";
 import type { ResourceSearchParams, ResourceSearchResult } from "@/lib/types";
 
@@ -13,7 +13,9 @@ export default function ResourcesPage() {
   const [results, setResults] = useState<ResourceSearchResult[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastSearch, setLastSearch] = useState<ResourceSearchParams | null>(null);
+  const [lastSearch, setLastSearch] = useState<ResourceSearchParams | null>(
+    null,
+  );
 
   async function handleSearch(params: ResourceSearchParams) {
     setIsLoading(true);
@@ -24,7 +26,7 @@ export default function ResourcesPage() {
       setResults(data);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Search failed. Please try again."
+        err instanceof Error ? err.message : "Search failed. Please try again.",
       );
     } finally {
       setIsLoading(false);
@@ -36,9 +38,7 @@ export default function ResourcesPage() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         {/* Page header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-900">
-            Find Resources
-          </h1>
+          <h1 className="text-2xl font-bold text-slate-900">Find Resources</h1>
           <p className="text-slate-500 mt-1">
             Search VA facilities and services near you
           </p>

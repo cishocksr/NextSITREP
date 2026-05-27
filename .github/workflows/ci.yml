@@ -107,7 +107,7 @@ jobs:
         run: bun run format:check
 
       - name: Type check
-        run: bunx tsc --noEmit
+        run: bun run type-check
 
       - name: Build Next.js
         run: bun run build

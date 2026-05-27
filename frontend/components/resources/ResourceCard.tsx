@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { resourceApi } from "@/lib/api";
 import type { ResourceSearchResult } from "@/lib/types";
 import { CATEGORY_COLORS, CATEGORY_LABELS } from "@/lib/types";
-import { resourceApi } from "@/lib/api";
 
 interface ResourceCardProps {
   resource: ResourceSearchResult;
@@ -43,7 +43,12 @@ export function ResourceCard({ resource, onSaved }: ResourceCardProps) {
     }
   }
 
-  const addressLine = [resource.address, resource.city, resource.state, resource.zipCode]
+  const addressLine = [
+    resource.address,
+    resource.city,
+    resource.state,
+    resource.zipCode,
+  ]
     .filter(Boolean)
     .join(", ");
 
@@ -77,13 +82,17 @@ export function ResourceCard({ resource, onSaved }: ResourceCardProps) {
       <div className="flex flex-col gap-1.5 text-sm text-slate-600">
         {addressLine && (
           <div className="flex items-start gap-2">
-            <span className="shrink-0 text-slate-400" aria-hidden>📍</span>
+            <span className="shrink-0 text-slate-400" aria-hidden>
+              📍
+            </span>
             <span>{addressLine}</span>
           </div>
         )}
         {resource.phone && (
           <div className="flex items-center gap-2">
-            <span className="shrink-0 text-slate-400" aria-hidden>📞</span>
+            <span className="shrink-0 text-slate-400" aria-hidden>
+              📞
+            </span>
             <a
               href={`tel:${resource.phone}`}
               className="text-blue-600 hover:underline"
@@ -94,7 +103,9 @@ export function ResourceCard({ resource, onSaved }: ResourceCardProps) {
         )}
         {resource.website && (
           <div className="flex items-center gap-2">
-            <span className="shrink-0 text-slate-400" aria-hidden>🌐</span>
+            <span className="shrink-0 text-slate-400" aria-hidden>
+              🌐
+            </span>
             <a
               href={resource.website}
               target="_blank"

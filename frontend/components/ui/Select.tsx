@@ -1,4 +1,4 @@
-import { type SelectHTMLAttributes, forwardRef } from "react";
+import { forwardRef, type SelectHTMLAttributes } from "react";
 
 interface SelectOption {
   value: string;
@@ -15,7 +15,7 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   (
     { label, error, options, placeholder, className = "", id, ...props },
-    ref
+    ref,
   ) => {
     const selectId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
 
@@ -42,9 +42,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           ].join(" ")}
           {...props}
         >
-          {placeholder && (
-            <option value="">{placeholder}</option>
-          )}
+          {placeholder && <option value="">{placeholder}</option>}
           {options.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
@@ -54,7 +52,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         {error && <p className="text-xs text-red-600">{error}</p>}
       </div>
     );
-  }
+  },
 );
 
 Select.displayName = "Select";

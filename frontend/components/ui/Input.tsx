@@ -1,4 +1,4 @@
-import { type InputHTMLAttributes, forwardRef } from "react";
+import { forwardRef, type InputHTMLAttributes } from "react";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -38,7 +38,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {hint && !error && <p className="text-xs text-slate-500">{hint}</p>}
       </div>
     );
-  }
+  },
 );
 
 Input.displayName = "Input";

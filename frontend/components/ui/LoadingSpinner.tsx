@@ -9,10 +9,7 @@ const sizeClasses = {
   lg: "h-12 w-12",
 };
 
-export function LoadingSpinner({
-  size = "md",
-  message,
-}: LoadingSpinnerProps) {
+export function LoadingSpinner({ size = "md", message }: LoadingSpinnerProps) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-12">
       <svg
@@ -36,9 +33,7 @@ export function LoadingSpinner({
           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
         />
       </svg>
-      {message && (
-        <p className="text-sm text-slate-500">{message}</p>
-      )}
+      {message && <p className="text-sm text-slate-500">{message}</p>}
     </div>
   );
 }

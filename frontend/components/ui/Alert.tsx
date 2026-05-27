@@ -21,7 +21,10 @@ export function Alert({
   onDismiss,
 }: AlertProps) {
   return (
-    <div className={`rounded-lg border px-4 py-3 text-sm ${styles[variant]}`} role="alert">
+    <div
+      className={`rounded-lg border px-4 py-3 text-sm ${styles[variant]}`}
+      role="alert"
+    >
       <div className="flex items-start justify-between gap-2">
         <div>
           {title && <p className="font-semibold mb-0.5">{title}</p>}
@@ -29,6 +32,7 @@ export function Alert({
         </div>
         {onDismiss && (
           <button
+            type="button"
             onClick={onDismiss}
             className="shrink-0 opacity-60 hover:opacity-100 transition-opacity"
             aria-label="Dismiss"

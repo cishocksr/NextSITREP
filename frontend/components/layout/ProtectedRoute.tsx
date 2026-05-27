@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
+import { useEffect } from "react";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { useAuth } from "@/context/AuthContext";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();

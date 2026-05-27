@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/context/AuthContext";
 import { BRANCH_LABELS } from "@/lib/types";
-import { Button } from "@/components/ui/Button";
 
 const navLinks = [
   { href: "/resources", label: "Find Resources" },
@@ -24,7 +24,9 @@ export function Navbar() {
             href={isAuthenticated ? "/resources" : "/"}
             className="flex items-center gap-2 shrink-0"
           >
-            <span className="text-xl" aria-hidden="true">🇺🇸</span>
+            <span className="text-xl" aria-hidden="true">
+              🇺🇸
+            </span>
             <span className="text-lg font-bold text-slate-900 tracking-tight">
               Veterans<span className="text-blue-600">Connect</span>
             </span>
