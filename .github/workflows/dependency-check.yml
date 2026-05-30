@@ -9,8 +9,8 @@ on:
     branches: [main]
     paths:
       - 'backend/pom.xml'
-      - 'fontend/package.json'
-      - 'fontend/bun.lock'
+      - 'frontend/package.json'
+      - 'frontend/bun.lock'
 
 jobs:
   backend-dependencies:
@@ -44,7 +44,7 @@ jobs:
     
     defaults:
       run:
-        working-directory: ./fontend
+        working-directory: ./frontend
     
     steps:
       - name: Checkout code
