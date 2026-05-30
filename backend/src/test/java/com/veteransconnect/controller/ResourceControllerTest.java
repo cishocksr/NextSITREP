@@ -8,6 +8,7 @@ import com.veteransconnect.dto.UpdateNotesRequest;
 import com.veteransconnect.exception.ResourceAlreadySavedException;
 import com.veteransconnect.exception.SavedResourceNotFoundException;
 import com.veteransconnect.model.enums.ResourceCategory;
+import com.veteransconnect.security.JwtService;
 import com.veteransconnect.service.ResourceSearchService;
 import com.veteransconnect.service.SavedResourceService;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,10 +19,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.security.Principal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -49,6 +52,10 @@ class ResourceControllerTest {
 
     @MockitoBean private ResourceSearchService resourceSearchService;
     @MockitoBean private SavedResourceService savedResourceService;
+    @MockitoBean private JwtService jwtService;
+    @MockitoBean private UserDetailsService userDetailsService;
+
+    private final Principal veteranPrincipal = () -> "veteran@example.com";
 
     private UUID savedId;
     private ResourceSearchResult searchResult;
@@ -104,6 +111,7 @@ class ResourceControllerTest {
                     .thenReturn(List.of(searchResult));
 
             mockMvc.perform(get("/api/v1/resources/search")
+                            .principal(veteranPrincipal)
                             .param("zipCode", "10001"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$[0].externalId").value("vha_689"))
@@ -121,6 +129,7 @@ class ResourceControllerTest {
                     .thenReturn(List.of(searchResult));
 
             mockMvc.perform(get("/api/v1/resources/search")
+                            .principal(veteranPrincipal)
                             .param("zipCode", "10001")
                             .param("category", "HEALTHCARE")
                             .param("keyword", "mental"))
@@ -136,7 +145,9 @@ class ResourceControllerTest {
             when(resourceSearchService.search(anyString(), any(), any(), any(), anyString()))
                     .thenReturn(List.of());
 
-            mockMvc.perform(get("/api/v1/resources/search").param("zipCode", "99999"))
+            mockMvc.perform(get("/api/v1/resources/search")
+                            .principal(veteranPrincipal)
+                            .param("zipCode", "99999"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isEmpty());
         }
@@ -157,7 +168,8 @@ class ResourceControllerTest {
             when(savedResourceService.getSavedResources("veteran@example.com"))
                     .thenReturn(List.of(savedResponse));
 
-            mockMvc.perform(get("/api/v1/resources/saved"))
+            mockMvc.perform(get("/api/v1/resources/saved")
+                            .principal(veteranPrincipal))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$[0].externalId").value("vha_689"))
                     .andExpect(jsonPath("$[0].name").value("VA New York Healthcare"));
@@ -180,6 +192,7 @@ class ResourceControllerTest {
                     .thenReturn(savedResponse);
 
             mockMvc.perform(post("/api/v1/resources/saved")
+                            .principal(veteranPrincipal)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(saveRequest)))
                     .andExpect(status().isCreated())
@@ -195,6 +208,7 @@ class ResourceControllerTest {
                     .thenThrow(new ResourceAlreadySavedException("Already saved: VA New York Healthcare"));
 
             mockMvc.perform(post("/api/v1/resources/saved")
+                            .principal(veteranPrincipal)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(saveRequest)))
                     .andExpect(status().isConflict())
@@ -230,6 +244,7 @@ class ResourceControllerTest {
             UpdateNotesRequest notesRequest = new UpdateNotesRequest("- Great mental health program\n- Need DD-214");
 
             mockMvc.perform(patch("/api/v1/resources/saved/{id}/notes", savedId)
+                            .principal(veteranPrincipal)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(notesRequest)))
                     .andExpect(status().isOk())
@@ -246,6 +261,7 @@ class ResourceControllerTest {
             UpdateNotesRequest notesRequest = new UpdateNotesRequest("some notes");
 
             mockMvc.perform(patch("/api/v1/resources/saved/{id}/notes", savedId)
+                            .principal(veteranPrincipal)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(notesRequest)))
                     .andExpect(status().isNotFound());
@@ -266,7 +282,8 @@ class ResourceControllerTest {
         void shouldReturn204OnSuccess() throws Exception {
             doNothing().when(savedResourceService).unsaveResource("veteran@example.com", savedId);
 
-            mockMvc.perform(delete("/api/v1/resources/saved/{id}", savedId))
+            mockMvc.perform(delete("/api/v1/resources/saved/{id}", savedId)
+                            .principal(veteranPrincipal))
                     .andExpect(status().isNoContent());
 
             verify(savedResourceService).unsaveResource("veteran@example.com", savedId);
@@ -279,7 +296,8 @@ class ResourceControllerTest {
             doThrow(new SavedResourceNotFoundException("Saved resource not found: " + savedId))
                     .when(savedResourceService).unsaveResource(anyString(), any(UUID.class));
 
-            mockMvc.perform(delete("/api/v1/resources/saved/{id}", savedId))
+            mockMvc.perform(delete("/api/v1/resources/saved/{id}", savedId)
+                            .principal(veteranPrincipal))
                     .andExpect(status().isNotFound());
         }
     }

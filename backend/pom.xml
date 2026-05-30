@@ -31,6 +31,7 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
+		<jacoco.version>0.8.14</jacoco.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -120,7 +121,7 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.12</version>
+				<version>${jacoco.version}</version>
 				<executions>
 					<execution>
 						<id>prepare-agent</id>
@@ -177,12 +178,10 @@
 				<configuration>
 					<!--
                       @{argLine} preserves the JaCoCo agent arg injected by prepare-agent.
-                      The -Dnet.bytebuddy.experimental flag tells Byte Buddy (used by Mockito)
-                      to support Java versions beyond its officially tested range.
-                      Needed because we're running Java 25 and Byte Buddy only officially
-                      supports up to Java 24 in this version.
+                      Mockito is loaded as a startup agent so Java 25 does not need to
+                      dynamically self-attach the inline mock maker during test startup.
                     -->
-					<argLine>@{argLine} -Dnet.bytebuddy.experimental=true</argLine>
+					<argLine>@{argLine} -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar -Dnet.bytebuddy.experimental=true</argLine>
 				</configuration>
 			</plugin>
 			<plugin>

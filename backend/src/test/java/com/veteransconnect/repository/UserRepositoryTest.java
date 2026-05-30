@@ -169,6 +169,7 @@ class UserRepositoryTest {
                 .firstName(VALID_FIRST_NAME)
                 .lastName(VALID_LAST_NAME)
                 .branchOfService(VALID_BRANCH)
-                .zipCode(VALID_ZIP_CODE);
+                .zipCode(VALID_ZIP_CODE)
+                .passwordHash("$2a$10$012345678901234567890u01234567890123456789012345678901234");
     }
 }

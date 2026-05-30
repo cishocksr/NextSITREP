@@ -11,10 +11,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,9 +29,9 @@ import java.util.UUID;
  *   PATCH  /api/v1/resources/saved/{id}/notes — update notes on a saved resource
  *   DELETE /api/v1/resources/saved/{id}   — remove a resource from saved list
  *
- * @AuthenticationPrincipal UserDetails userDetails
- *   Spring Security injects the authenticated user directly into our method.
- *   userDetails.getUsername() returns the email stored in the JWT —
+ * Principal principal
+ *   Spring Security exposes the authenticated user directly to our method.
+ *   principal.getName() returns the email stored in the JWT —
  *   no need to query the database just to find out who's calling.
  */
 @RestController
@@ -66,14 +65,14 @@ public class ResourceController {
             @RequestParam(required = false) ResourceCategory category,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer radius,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            Principal principal) {
 
         List<ResourceSearchResult> results = resourceSearchService.search(
                 zipCode,
                 category,
                 keyword,
                 radius,
-                userDetails.getUsername()   // email from JWT
+                principal.getName()   // email from JWT
         );
 
         return ResponseEntity.ok(results);
@@ -88,10 +87,10 @@ public class ResourceController {
      */
     @GetMapping("/saved")
     public ResponseEntity<List<SavedResourceResponse>> getSavedResources(
-            @AuthenticationPrincipal UserDetails userDetails) {
+            Principal principal) {
 
         List<SavedResourceResponse> saved =
-                savedResourceService.getSavedResources(userDetails.getUsername());
+                savedResourceService.getSavedResources(principal.getName());
 
         return ResponseEntity.ok(saved);
     }
@@ -106,10 +105,10 @@ public class ResourceController {
     @PostMapping("/saved")
     public ResponseEntity<SavedResourceResponse> saveResource(
             @Valid @RequestBody SaveResourceRequest request,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            Principal principal) {
 
         SavedResourceResponse saved =
-                savedResourceService.saveResource(userDetails.getUsername(), request);
+                savedResourceService.saveResource(principal.getName(), request);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
@@ -129,10 +128,10 @@ public class ResourceController {
     public ResponseEntity<SavedResourceResponse> updateNotes(
             @PathVariable UUID id,
             @Valid @RequestBody UpdateNotesRequest request,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            Principal principal) {
 
         SavedResourceResponse updated =
-                savedResourceService.updateNotes(userDetails.getUsername(), id, request.notes());
+                savedResourceService.updateNotes(principal.getName(), id, request.notes());
 
         return ResponseEntity.ok(updated);
     }
@@ -145,9 +144,9 @@ public class ResourceController {
     @DeleteMapping("/saved/{id}")
     public ResponseEntity<Void> unsaveResource(
             @PathVariable UUID id,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            Principal principal) {
 
-        savedResourceService.unsaveResource(userDetails.getUsername(), id);
+        savedResourceService.unsaveResource(principal.getName(), id);
 
         // 204 No Content is the correct response for a successful DELETE
         return ResponseEntity.noContent().build();
