@@ -175,4 +175,21 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
+
+    // =========================================================
+    // 503 Service Unavailable — Geocoding upstream unavailable
+    // =========================================================
+
+    @ExceptionHandler(com.veteransconnect.client.GeocodingService.GeocodingServiceUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleGeocodingServiceUnavailableException(
+            com.veteransconnect.client.GeocodingService.GeocodingServiceUnavailableException ex) {
+
+        ErrorResponse error = new ErrorResponse(
+                ex.getMessage(),
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(error);
+    }
 }

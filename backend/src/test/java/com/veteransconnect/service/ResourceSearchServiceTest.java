@@ -209,6 +209,49 @@ class ResourceSearchServiceTest {
     }
 
     @Test
+    @DisplayName("Should reject malformed zip code before geocoding")
+    void shouldRejectMalformedZipCodeBeforeGeocoding() {
+        assertThatThrownBy(() -> resourceSearchService.search(
+                "1001A", null, null, null, "veteran@example.com"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("5-digit");
+
+        verifyNoInteractions(geocodingService, vaFacilitiesClient);
+    }
+
+    @Test
+    @DisplayName("Should reject radius outside supported bounds")
+    void shouldRejectRadiusOutsideSupportedBounds() {
+        assertThatThrownBy(() -> resourceSearchService.search(
+                "10001", null, null, 0, "veteran@example.com"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("between 1 and 100");
+
+        assertThatThrownBy(() -> resourceSearchService.search(
+                "10001", null, null, 101, "veteran@example.com"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("between 1 and 100");
+
+        verifyNoInteractions(geocodingService, vaFacilitiesClient);
+    }
+
+    @Test
+    @DisplayName("Should trim zip code and keyword before searching")
+    void shouldTrimZipCodeAndKeywordBeforeSearching() {
+        when(geocodingService.getCoordinatesForZipCode("10001")).thenReturn(testCoords);
+        when(userRepository.findByEmail("veteran@example.com")).thenReturn(Optional.of(testUser));
+        when(savedResourceRepository.findByUser(testUser)).thenReturn(List.of());
+        when(vaFacilitiesClient.searchFacilities(anyDouble(), anyDouble(), eq("health"), anyInt()))
+                .thenReturn(List.of(healthFacility));
+
+        List<ResourceSearchResult> results = resourceSearchService.search(
+                " 10001 ", ResourceCategory.HEALTHCARE, " medical ", null, "veteran@example.com");
+
+        assertThat(results).hasSize(1);
+        verify(geocodingService).getCoordinatesForZipCode("10001");
+    }
+
+    @Test
     @DisplayName("Should sort results by distance ascending")
     void shouldSortByDistanceAscending() {
         // Given — two facilities with different distances

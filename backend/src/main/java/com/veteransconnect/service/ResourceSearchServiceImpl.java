@@ -50,6 +50,8 @@ public class ResourceSearchServiceImpl implements ResourceSearchService {
 
     // Default search radius if not specified by the caller
     private static final int DEFAULT_RADIUS_MILES = 50;
+    private static final int MIN_RADIUS_MILES = 1;
+    private static final int MAX_RADIUS_MILES = 100;
 
     @Override
     @Transactional(readOnly = true)
@@ -60,14 +62,16 @@ public class ResourceSearchServiceImpl implements ResourceSearchService {
             Integer radiusMiles,
             String userEmail) {
 
-        int radius = radiusMiles != null ? radiusMiles : DEFAULT_RADIUS_MILES;
+        String normalizedZipCode = GeocodingService.normalizeZipCode(zipCode);
+        int radius = normalizeRadius(radiusMiles);
+        String normalizedKeyword = keyword == null || keyword.isBlank() ? null : keyword.trim();
 
         log.info("Resource search: zipCode={}, category={}, keyword={}, radius={}mi",
-                zipCode, category, keyword, radius);
+                normalizedZipCode, category, normalizedKeyword, radius);
 
         // ── Step 1: Convert zip code to coordinates ────────────────────────────
         GeocodingService.Coordinates coords =
-                geocodingService.getCoordinatesForZipCode(zipCode);
+                geocodingService.getCoordinatesForZipCode(normalizedZipCode);
 
         // ── Step 2: Get the VA facility types to query ─────────────────────────
         // If no category is specified, search ALL types.
@@ -100,7 +104,7 @@ public class ResourceSearchServiceImpl implements ResourceSearchService {
         // ── Step 5: Normalize, filter, and build results ────────────────────────
         return vaFacilities.stream()
                 // Apply keyword filter if provided
-                .filter(facility -> matchesKeyword(facility, keyword))
+                .filter(facility -> matchesKeyword(facility, normalizedKeyword))
                 // Convert VA API format → our normalized ResourceSearchResult
                 .map(facility -> toSearchResult(facility, category, savedExternalIds))
                 // Sort by distance (closest first)
@@ -126,6 +130,19 @@ public class ResourceSearchServiceImpl implements ResourceSearchService {
             return Arrays.asList("health", "benefits", "vet_center");
         }
         return List.of(category.getVaFacilityType());
+    }
+
+    private int normalizeRadius(Integer radiusMiles) {
+        if (radiusMiles == null) {
+            return DEFAULT_RADIUS_MILES;
+        }
+
+        if (radiusMiles < MIN_RADIUS_MILES || radiusMiles > MAX_RADIUS_MILES) {
+            throw new IllegalArgumentException(
+                    "Radius must be between " + MIN_RADIUS_MILES + " and " + MAX_RADIUS_MILES + " miles");
+        }
+
+        return radiusMiles;
     }
 
     /**

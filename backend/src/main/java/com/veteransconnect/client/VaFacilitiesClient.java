@@ -4,14 +4,16 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -44,21 +46,38 @@ public class VaFacilitiesClient {
 
     // API source identifier — stored alongside saved resources so we know where they came from
     public static final String SOURCE_API = "VA_FACILITIES";
+    private static final Set<String> SUPPORTED_FACILITY_TYPES = Set.of("health", "benefits", "vet_center");
+    private static final int PER_PAGE = 20;
 
     private final RestClient restClient;
-
-    @Value("${va.api.key:}")
-    private String apiKey;
-
-    @Value("${va.api.facilities.default-radius:50}")
-    private int defaultRadius;
+    private final String apiKey;
 
     public VaFacilitiesClient(
-            @Value("${va.api.base-url}") String baseUrl) {
-        this.restClient = RestClient.builder()
-                .baseUrl(baseUrl)
-                .defaultHeader("Accept", "application/json")
-                .build();
+            RestClient.Builder restClientBuilder,
+            @Value("${va.api.base-url}") String baseUrl,
+            @Value("${va.api.key:}") String apiKey,
+            @Value("${va.api.connect-timeout-ms:2000}") int connectTimeoutMs,
+            @Value("${va.api.read-timeout-ms:5000}") int readTimeoutMs) {
+        this(
+                restClientBuilder
+                        .requestFactory(requestFactory(connectTimeoutMs, readTimeoutMs))
+                        .baseUrl(baseUrl)
+                        .defaultHeader("Accept", "application/json")
+                        .build(),
+                apiKey
+        );
+    }
+
+    VaFacilitiesClient(RestClient restClient, String apiKey) {
+        this.restClient = restClient;
+        this.apiKey = apiKey;
+    }
+
+    private static SimpleClientHttpRequestFactory requestFactory(int connectTimeoutMs, int readTimeoutMs) {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(Duration.ofMillis(connectTimeoutMs));
+        factory.setReadTimeout(Duration.ofMillis(readTimeoutMs));
+        return factory;
     }
 
     /**
@@ -76,6 +95,10 @@ public class VaFacilitiesClient {
             String facilityType,
             int radiusMiles) {
 
+        if (!SUPPORTED_FACILITY_TYPES.contains(facilityType)) {
+            throw new IllegalArgumentException("Unsupported VA facility type: " + facilityType);
+        }
+
         log.debug("Searching VA facilities: type={}, lat={}, long={}, radius={}mi",
                 facilityType, latitude, longitude, radiusMiles);
 
@@ -89,7 +112,7 @@ public class VaFacilitiesClient {
                                 .queryParam("radius", radiusMiles)
                                 .queryParam("type", facilityType)
                                 // Request up to 20 results per search
-                                .queryParam("per_page", 20);
+                                .queryParam("per_page", PER_PAGE);
                         return builder.build();
                     })
                     // The VA API requires an API key in the header
@@ -108,15 +131,18 @@ public class VaFacilitiesClient {
             Map<String, Double> distanceMap = Collections.emptyMap();
             if (response.meta() != null && response.meta().distances() != null) {
                 distanceMap = response.meta().distances().stream()
+                        .filter(d -> d.id() != null)
                         .collect(Collectors.toMap(
                                 VaDistance::id,
-                                d -> d.distance() != null ? d.distance() : 0.0
+                                d -> d.distance() != null ? d.distance() : 0.0,
+                                (first, ignored) -> first
                         ));
             }
 
             // Attach distances to each facility
             final Map<String, Double> finalDistanceMap = distanceMap;
             return response.data().stream()
+                    .filter(f -> f != null && f.id() != null)
                     .map(f -> f.withDistance(finalDistanceMap.getOrDefault(f.id(), 0.0)))
                     .collect(Collectors.toList());
 
