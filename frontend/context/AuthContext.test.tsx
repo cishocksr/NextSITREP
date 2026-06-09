@@ -10,19 +10,20 @@ vi.mock("@/lib/api", () => ({
   authApi: {
     login: vi.fn(),
     register: vi.fn(),
+    logout: vi.fn(),
+    me: vi.fn(),
   },
   setOnUnauthorized: vi.fn(),
 }));
 
 const authResponse: AuthResponse = {
-  token: "test-token",
-  tokenType: "Bearer",
   expiresIn: 60_000,
   userId: "user-1",
   email: "pat@example.com",
   firstName: "Pat",
   lastName: "Taylor",
   branchOfService: "ARMY",
+  zipCode: "12345",
 };
 
 function AuthHarness() {
@@ -51,6 +52,8 @@ describe("AuthProvider", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.mocked(authApi.login).mockResolvedValue(authResponse);
+    vi.mocked(authApi.logout).mockResolvedValue(undefined);
+    vi.mocked(authApi.me).mockRejectedValue(new Error("No active session"));
   });
 
   it("stores the authenticated user and redirects through the app router after login", async () => {
@@ -68,7 +71,8 @@ describe("AuthProvider", () => {
       expect(screen.getByTestId("auth-state")).toHaveTextContent("signed-in");
     });
     expect(screen.getByText("Pat")).toBeInTheDocument();
-    expect(localStorage.getItem("vc_token")).toBe("test-token");
+    expect(localStorage.getItem("vc_token")).toBeNull();
+    expect(localStorage.getItem("vc_user")).toContain("pat@example.com");
     expect(getMockRouter().push).toHaveBeenCalledWith("/resources");
   });
 
@@ -90,6 +94,7 @@ describe("AuthProvider", () => {
 
     expect(screen.getByTestId("auth-state")).toHaveTextContent("signed-out");
     expect(localStorage.getItem("vc_token")).toBeNull();
+    expect(authApi.logout).toHaveBeenCalled();
     expect(getMockRouter().push).toHaveBeenLastCalledWith("/");
   });
 });

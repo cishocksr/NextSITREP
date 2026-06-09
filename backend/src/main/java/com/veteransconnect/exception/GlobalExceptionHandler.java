@@ -160,6 +160,23 @@ public class GlobalExceptionHandler {
     }
 
     // =========================================================
+    // 429 Too Many Requests — RateLimitExceededException
+    // =========================================================
+
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ErrorResponse> handleRateLimitExceededException(
+            RateLimitExceededException ex) {
+
+        ErrorResponse error = new ErrorResponse(
+                ex.getMessage(),
+                HttpStatus.TOO_MANY_REQUESTS.value(),
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(error);
+    }
+
+    // =========================================================
     // 400 Bad Request — GeocodingException (bad zip code)
     // =========================================================
 

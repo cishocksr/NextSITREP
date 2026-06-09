@@ -6,10 +6,12 @@ import { ResourceCard } from "@/components/resources/ResourceCard";
 import { ResourceFilters } from "@/components/resources/ResourceFilters";
 import { Alert } from "@/components/ui/Alert";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { useAuth } from "@/context/AuthContext";
 import { resourceApi } from "@/lib/api";
 import type { ResourceSearchParams, ResourceSearchResult } from "@/lib/types";
 
 export default function ResourcesPage() {
+  const { user } = useAuth();
   const [results, setResults] = useState<ResourceSearchResult[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +49,7 @@ export default function ResourcesPage() {
         {/* Filters */}
         <div className="mb-8">
           <ResourceFilters
-            defaultZip=""
+            defaultZip={user?.zipCode ?? ""}
             onSearch={handleSearch}
             isLoading={isLoading}
           />

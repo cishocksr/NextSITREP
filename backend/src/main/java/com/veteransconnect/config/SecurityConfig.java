@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -16,6 +18,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -87,12 +90,36 @@ public class SecurityConfig {
                 // Public endpoints — anyone can call these without a token:
                 //   POST /api/v1/auth/register  — create an account
                 //   POST /api/v1/auth/login     — get a JWT
-                .requestMatchers("/api/v1/auth/**").permitAll()
+                .requestMatchers(
+                        "/api/v1/auth/register",
+                        "/api/v1/auth/login",
+                        "/api/v1/auth/logout"
+                ).permitAll()
                 .requestMatchers("/actuator/health").permitAll()
 
                 // Every other request requires a valid JWT.
-                // If no token (or an invalid one) is provided, Spring returns 403.
+                // If no token (or an invalid one) is provided, Spring returns 401.
                 .anyRequest().authenticated()
+            )
+
+            // ── AUTH FAILURE RESPONSES ────────────────────────────────────────
+            // Return predictable JSON for missing/invalid tokens instead of
+            // Spring Security's default blank/html error responses.
+            .exceptionHandling(exceptions -> exceptions
+                .authenticationEntryPoint((request, response, authException) -> {
+                    response.setStatus(HttpStatus.UNAUTHORIZED.value());
+                    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                    response.getWriter().write(
+                            "{\"message\":\"Authentication required\",\"status\":401}"
+                    );
+                })
+                .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    response.setStatus(HttpStatus.FORBIDDEN.value());
+                    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                    response.getWriter().write(
+                            "{\"message\":\"Access denied\",\"status\":403}"
+                    );
+                })
             )
 
             // ── SESSION MANAGEMENT ───────────────────────────────────────────
@@ -112,7 +139,24 @@ public class SecurityConfig {
             // Insert our JWT filter BEFORE Spring's default username/password filter.
             // This way, every request is checked for a JWT before any other
             // authentication mechanism runs.
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+
+            // ── SECURITY HEADERS ─────────────────────────────────────────────
+            // These are cheap browser-side protections for the API responses.
+            .headers(headers -> headers
+                .contentSecurityPolicy(csp -> csp.policyDirectives(
+                        "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+                ))
+                .frameOptions(frameOptions -> frameOptions.deny())
+                .referrerPolicy(referrer -> referrer.policy(
+                        ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER
+                ))
+                .httpStrictTransportSecurity(hsts -> hsts
+                        .includeSubDomains(true)
+                        .maxAgeInSeconds(31536000)
+                )
+                .cacheControl(cache -> {})
+            );
 
         return http.build();
     }
@@ -130,7 +174,7 @@ public class SecurityConfig {
      * Our setup:
      *   - Allows the React dev server at localhost:3000
      *   - Allows the standard HTTP methods REST APIs use
-     *   - Allows the Authorization header (needed to send JWTs)
+     *   - Allows the Authorization header for API clients
      *   - Allows credentials if needed
      *
      * For production you would replace "http://localhost:3000" with
@@ -148,14 +192,13 @@ public class SecurityConfig {
         // Standard REST methods
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
-        // Allow all standard headers plus our Authorization header (carries the JWT)
+        // Allow all standard headers plus Authorization for non-browser API clients
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
 
-        // Expose Authorization in responses so the frontend can read it if needed
-        config.setExposedHeaders(List.of("Authorization"));
-
-        // Allow cookies / credentials (needed if you add cookie support later)
+        // Allow the frontend to send/receive the HttpOnly session cookie
         config.setAllowCredentials(true);
+
+        config.setMaxAge(3600L);
 
         // Apply this CORS policy to every URL in the application
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

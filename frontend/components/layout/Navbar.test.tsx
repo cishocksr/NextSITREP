@@ -47,6 +47,7 @@ describe("Navbar", () => {
         firstName: "Pat",
         lastName: "Taylor",
         branchOfService: "ARMY",
+        zipCode: "12345",
       },
       isLoading: false,
       isAuthenticated: true,

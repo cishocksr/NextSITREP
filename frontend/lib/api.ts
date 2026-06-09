@@ -1,4 +1,3 @@
-import { getToken } from "./auth";
 import type {
   AuthResponse,
   LoginRequest,
@@ -18,27 +17,31 @@ export function setOnUnauthorized(fn: () => void) {
   onUnauthorized = fn;
 }
 
+type ApiRequestOptions = RequestInit & {
+  skipUnauthorizedHandler?: boolean;
+};
+
 // ─── Core Fetch Wrapper ───────────────────────────────────────────────────────
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = getToken();
+async function request<T>(
+  path: string,
+  options: ApiRequestOptions = {},
+): Promise<T> {
+  const { skipUnauthorizedHandler = false, ...fetchOptions } = options;
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...(options.headers as Record<string, string>),
+    ...(fetchOptions.headers as Record<string, string>),
   };
 
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
   const res = await fetch(`${BASE_URL}${path}`, {
-    ...options,
+    ...fetchOptions,
+    credentials: "include",
     headers,
   });
 
-  // Unauthorised → clear local session
-  if (res.status === 401) {
+  // Unauthorized/forbidden usually means the token is missing, invalid, or expired.
+  if (!skipUnauthorizedHandler && (res.status === 401 || res.status === 403)) {
     onUnauthorized?.();
   }
 
@@ -77,6 +80,19 @@ export const authApi = {
     return request("/api/v1/auth/login", {
       method: "POST",
       body: JSON.stringify(data),
+    });
+  },
+
+  logout(): Promise<void> {
+    return request("/api/v1/auth/logout", {
+      method: "POST",
+      skipUnauthorizedHandler: true,
+    });
+  },
+
+  me(): Promise<AuthResponse> {
+    return request("/api/v1/auth/me", {
+      skipUnauthorizedHandler: true,
     });
   },
 };

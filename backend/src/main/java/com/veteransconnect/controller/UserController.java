@@ -17,7 +17,8 @@ import java.util.UUID;
  * because those are auth operations — they're the ones that hand out JWTs.
  *
  * All endpoints here require a valid JWT (configured in SecurityConfig).
- * The caller must include: Authorization: Bearer <token>
+ * Browser clients authenticate with the HttpOnly session cookie issued by
+ * AuthController. API clients may still send Authorization: Bearer <token>.
  *
  * Base path: /api/v1/users
  */

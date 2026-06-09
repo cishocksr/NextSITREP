@@ -5,7 +5,9 @@ import com.veteransconnect.dto.AuthResponse;
 import com.veteransconnect.dto.UserResponse;
 import com.veteransconnect.dto.LoginRequest;
 import com.veteransconnect.dto.UserRegistrationRequest;
+import com.veteransconnect.exception.RateLimitExceededException;
 import com.veteransconnect.model.enums.BranchOfService;
+import com.veteransconnect.security.AuthRateLimiter;
 import com.veteransconnect.security.JwtService;
 import com.veteransconnect.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -26,9 +29,14 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -64,6 +72,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private AuthenticationManager authenticationManager;
+
+    @MockitoBean
+    private AuthRateLimiter authRateLimiter;
 
     private UUID testUserId;
     private UserRegistrationRequest validRegisterRequest;
@@ -117,7 +128,7 @@ class AuthControllerTest {
     class Register {
 
         @Test
-        @DisplayName("Should return 201 Created with token on successful registration")
+        @DisplayName("Should return 201 Created with session cookie on successful registration")
         void shouldReturn201OnSuccess() throws Exception {
             // Given — wire up all the mocks the controller will call
             when(userDetailsService.loadUserByUsername("veteran@example.com"))
@@ -132,10 +143,12 @@ class AuthControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(validRegisterRequest)))
                     .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.token").value("mock.jwt.token"))
-                    .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                    .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("vc_session=mock.jwt.token")))
+                    .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("HttpOnly")))
+                    .andExpect(jsonPath("$.token").doesNotExist())
                     .andExpect(jsonPath("$.email").value("veteran@example.com"))
-                    .andExpect(jsonPath("$.firstName").value("John"));
+                    .andExpect(jsonPath("$.firstName").value("John"))
+                    .andExpect(jsonPath("$.zipCode").value("12345"));
         }
 
         @Test
@@ -199,7 +212,7 @@ class AuthControllerTest {
     class Login {
 
         @Test
-        @DisplayName("Should return 200 OK with token on successful login")
+        @DisplayName("Should return 200 OK with session cookie on successful login")
         void shouldReturn200OnSuccess() throws Exception {
             // Given — mock successful authentication and token generation
             when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
@@ -217,9 +230,11 @@ class AuthControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(validLoginRequest)))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.token").value("mock.jwt.token"))
-                    .andExpect(jsonPath("$.tokenType").value("Bearer"))
-                    .andExpect(jsonPath("$.email").value("veteran@example.com"));
+                    .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("vc_session=mock.jwt.token")))
+                    .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("HttpOnly")))
+                    .andExpect(jsonPath("$.token").doesNotExist())
+                    .andExpect(jsonPath("$.email").value("veteran@example.com"))
+                    .andExpect(jsonPath("$.zipCode").value("12345"));
         }
 
         @Test
@@ -234,6 +249,19 @@ class AuthControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(validLoginRequest)))
                     .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @DisplayName("Should return 429 Too Many Requests when login attempts exceed limit")
+        void shouldReturn429WhenLoginRateLimitExceeded() throws Exception {
+            doThrow(new RateLimitExceededException("Too many authentication attempts. Please wait and try again."))
+                    .when(authRateLimiter).checkAllowed(any(), eq("login"), eq("veteran@example.com"));
+
+            mockMvc.perform(post("/api/v1/auth/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(validLoginRequest)))
+                    .andExpect(status().isTooManyRequests())
+                    .andExpect(jsonPath("$.status").value(429));
         }
 
         @Test
@@ -256,6 +284,27 @@ class AuthControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(badRequest)))
                     .andExpect(status().isBadRequest());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/v1/auth/me")
+    class CurrentUser {
+
+        @Test
+        @DisplayName("Should return 200 OK with current user session")
+        void shouldReturnCurrentUser() throws Exception {
+            when(jwtService.getExpirationMs()).thenReturn(86400000L);
+            when(userService.getUserByEmail("veteran@example.com"))
+                    .thenReturn(testUserResponse);
+
+            mockMvc.perform(get("/api/v1/auth/me")
+                            .principal(() -> "veteran@example.com"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.email").value("veteran@example.com"))
+                    .andExpect(jsonPath("$.firstName").value("John"))
+                    .andExpect(jsonPath("$.zipCode").value("12345"))
+                    .andExpect(jsonPath("$.token").doesNotExist());
         }
     }
 }

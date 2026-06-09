@@ -30,9 +30,10 @@ export function RegisterForm() {
     zipCode: "",
     password: "",
     confirmPassword: "",
+    acceptsLegal: false,
   });
 
-  function update(field: keyof typeof form, value: string) {
+  function update(field: keyof typeof form, value: string | boolean) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
@@ -50,6 +51,10 @@ export function RegisterForm() {
     }
     if (form.password.length < 8) {
       setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (!form.acceptsLegal) {
+      setError("Please agree to the Terms and Privacy Policy to continue.");
       return;
     }
 
@@ -155,10 +160,44 @@ export function RegisterForm() {
         placeholder="Re-enter your password"
       />
 
+      <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+        <input
+          type="checkbox"
+          checked={form.acceptsLegal}
+          onChange={(e) => update("acceptsLegal", e.target.checked)}
+          className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+        />
+        <span className="leading-6">
+          I agree to the{" "}
+          <Link
+            href="/terms"
+            className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
+          >
+            Terms
+          </Link>
+          ,{" "}
+          <Link
+            href="/privacy"
+            className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
+          >
+            Privacy Policy
+          </Link>
+          , and{" "}
+          <Link
+            href="/disclaimer"
+            className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
+          >
+            Disclaimer
+          </Link>
+          .
+        </span>
+      </label>
+
       <Button
         type="submit"
         size="lg"
         isLoading={isLoading}
+        disabled={!form.acceptsLegal}
         className="w-full mt-1"
       >
         Create Account

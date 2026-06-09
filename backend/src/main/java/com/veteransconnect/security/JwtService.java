@@ -98,7 +98,7 @@ public class JwtService {
      *   1. The username embedded in the token matches the given UserDetails
      *   2. The token has not expired
      *
-     * @param token       the JWT from the Authorization header
+     * @param token       the JWT from the session cookie or Authorization header
      * @param userDetails the user loaded from the database
      * @return true if the token is valid and belongs to this user
      */

@@ -23,6 +23,7 @@ interface AuthUser {
   firstName: string;
   lastName: string;
   branchOfService: BranchOfService;
+  zipCode: string;
 }
 
 interface AuthContextValue {
@@ -42,21 +43,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const logout = useCallback(() => {
+    void authApi.logout().catch(() => {
+      // Local cleanup still happens even if the server is unreachable.
+    });
     clearAuth();
     setUser(null);
     router.push("/");
   }, [router]);
 
-  // Rehydrate from localStorage on mount
+  const handleAuthResponse = useCallback((auth: AuthResponse) => {
+    saveAuth(auth);
+    setUser({
+      userId: auth.userId,
+      email: auth.email,
+      firstName: auth.firstName,
+      lastName: auth.lastName,
+      branchOfService: auth.branchOfService,
+      zipCode: auth.zipCode,
+    });
+  }, []);
+
+  // Rehydrate from the HttpOnly cookie on mount.
   useEffect(() => {
-    const token = getToken();
-    const stored = getStoredUser();
-    if (token && stored) {
-      setUser(stored);
-    }
-    setIsLoading(false);
+    let isMounted = true;
     setOnUnauthorized(logout);
-  }, [logout]);
+
+    async function loadSession() {
+      const stored = getStoredUser();
+      if (getToken() && stored) {
+        setUser(stored);
+      }
+
+      try {
+        const auth = await authApi.me();
+        if (!isMounted) return;
+        handleAuthResponse(auth);
+      } catch {
+        if (!isMounted) return;
+        clearAuth();
+        setUser(null);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [handleAuthResponse, logout]);
 
   // Proactive expiry timer — log out when the token actually expires
   useEffect(() => {
@@ -68,17 +106,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const timer = setTimeout(logout, ms);
     return () => clearTimeout(timer);
   }, [user, logout]);
-
-  const handleAuthResponse = useCallback((auth: AuthResponse) => {
-    saveAuth(auth);
-    setUser({
-      userId: auth.userId,
-      email: auth.email,
-      firstName: auth.firstName,
-      lastName: auth.lastName,
-      branchOfService: auth.branchOfService,
-    });
-  }, []);
 
   const login = useCallback(
     async (data: LoginRequest) => {

@@ -32,14 +32,13 @@ export interface LoginRequest {
 }
 
 export interface AuthResponse {
-  token: string;
-  tokenType: string;
   expiresIn: number;
   userId: string;
   email: string;
   firstName: string;
   lastName: string;
   branchOfService: BranchOfService;
+  zipCode: string;
 }
 
 // ─── Resources ───────────────────────────────────────────────────────────────

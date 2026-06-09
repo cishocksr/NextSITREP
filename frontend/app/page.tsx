@@ -147,14 +147,6 @@ export default function LandingPage() {
           <Button size="lg">Get Started — It&apos;s Free</Button>
         </Link>
       </section>
-
-      {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white">
-        <div className="mx-auto max-w-6xl px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-400">
-          <span>🇺🇸 VeteransConnect — Supporting those who served</span>
-          <span>Resource data powered by the VA Facilities API</span>
-        </div>
-      </footer>
     </div>
   );
 }
