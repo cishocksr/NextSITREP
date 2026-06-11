@@ -25,6 +25,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -187,7 +188,12 @@ public class SecurityConfig {
         // Origins are injected from the CORS_ALLOWED_ORIGINS environment variable.
         // Local dev: http://localhost:3000 (Next.js dev server)
         // Production: your real domain, e.g. https://veteransconnect.org
-        config.setAllowedOrigins(List.of(allowedOrigins));
+        config.setAllowedOrigins(
+                Arrays.stream(allowedOrigins)
+                        .map(String::trim)
+                        .filter(origin -> !origin.isBlank())
+                        .toList()
+        );
 
         // Standard REST methods
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));

@@ -209,4 +209,23 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(error);
     }
+
+    // =========================================================
+    // 503 Service Unavailable — VA Facilities unavailable or misconfigured
+    // =========================================================
+
+    @ExceptionHandler({
+            com.veteransconnect.client.VaFacilitiesClient.VaFacilitiesConfigurationException.class,
+            com.veteransconnect.client.VaFacilitiesClient.VaFacilitiesServiceUnavailableException.class
+    })
+    public ResponseEntity<ErrorResponse> handleVaFacilitiesException(RuntimeException ex) {
+
+        ErrorResponse error = new ErrorResponse(
+                ex.getMessage(),
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(error);
+    }
 }

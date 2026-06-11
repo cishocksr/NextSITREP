@@ -1,6 +1,7 @@
 package com.veteransconnect.client;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
@@ -40,6 +41,7 @@ public class GeocodingService {
     private final boolean cacheEnabled;
     private final Map<String, Coordinates> coordinatesCache = new ConcurrentHashMap<>();
 
+    @Autowired
     public GeocodingService(
             RestClient.Builder restClientBuilder,
             @Value("${geocoding.nominatim.base-url}") String baseUrl,

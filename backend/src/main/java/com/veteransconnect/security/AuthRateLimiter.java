@@ -2,6 +2,7 @@ package com.veteransconnect.security;
 
 import com.veteransconnect.exception.RateLimitExceededException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +26,7 @@ public class AuthRateLimiter {
     private final int maxAttempts;
     private final long windowMs;
 
+    @Autowired
     public AuthRateLimiter(
             @Value("${security.auth-rate-limit.max-attempts:10}") int maxAttempts,
             @Value("${security.auth-rate-limit.window-ms:900000}") long windowMs) {

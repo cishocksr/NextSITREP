@@ -3,11 +3,14 @@ package com.veteransconnect.client;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -52,6 +55,7 @@ public class VaFacilitiesClient {
     private final RestClient restClient;
     private final String apiKey;
 
+    @Autowired
     public VaFacilitiesClient(
             RestClient.Builder restClientBuilder,
             @Value("${va.api.base-url}") String baseUrl,
@@ -102,6 +106,8 @@ public class VaFacilitiesClient {
         log.debug("Searching VA facilities: type={}, lat={}, long={}, radius={}mi",
                 facilityType, latitude, longitude, radiusMiles);
 
+        validateApiKey();
+
         try {
             VaApiResponse response = restClient.get()
                     .uri(uriBuilder -> {
@@ -146,11 +152,42 @@ public class VaFacilitiesClient {
                     .map(f -> f.withDistance(finalDistanceMap.getOrDefault(f.id(), 0.0)))
                     .collect(Collectors.toList());
 
+        } catch (RestClientResponseException e) {
+            if (e.getStatusCode() == HttpStatus.UNAUTHORIZED || e.getStatusCode() == HttpStatus.FORBIDDEN) {
+                log.error("VA Facilities API rejected the configured API key: {}", e.getStatusCode());
+                throw new VaFacilitiesConfigurationException(
+                        "VA Facilities API key is missing or invalid. Set VA_API_KEY and restart the backend.");
+            }
+
+            log.error("VA Facilities API error: {}", e.getMessage());
+            throw new VaFacilitiesServiceUnavailableException(
+                    "VA Facilities API is unavailable; please try again later.");
         } catch (RestClientException e) {
             log.error("VA Facilities API error: {}", e.getMessage());
-            // Return empty list rather than throwing — a failing external API
-            // shouldn't crash the whole search
-            return Collections.emptyList();
+            throw new VaFacilitiesServiceUnavailableException(
+                    "VA Facilities API is unavailable; please try again later.");
+        }
+    }
+
+    private void validateApiKey() {
+        if (apiKey == null
+                || apiKey.isBlank()
+                || "your-va-api-key-here".equals(apiKey)
+                || "your_va_api_key_here".equals(apiKey)) {
+            throw new VaFacilitiesConfigurationException(
+                    "VA Facilities API key is missing or invalid. Set VA_API_KEY and restart the backend.");
+        }
+    }
+
+    public static class VaFacilitiesConfigurationException extends RuntimeException {
+        public VaFacilitiesConfigurationException(String message) {
+            super(message);
+        }
+    }
+
+    public static class VaFacilitiesServiceUnavailableException extends RuntimeException {
+        public VaFacilitiesServiceUnavailableException(String message) {
+            super(message);
         }
     }
 
