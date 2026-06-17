@@ -75,6 +75,56 @@ class VaFacilitiesClientTest {
     }
 
     @Test
+    @DisplayName("Should parse current VA response field names")
+    void shouldParseCurrentVaResponseFieldNames() {
+        RestClient.Builder builder = RestClient.builder().baseUrl("https://api.va.test");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        VaFacilitiesClient client = new VaFacilitiesClient(builder.build(), "test-api-key");
+
+        server.expect(once(), requestTo(
+                        "https://api.va.test/services/va_facilities/v1/facilities?lat=40.75&long=-73.99&radius=50&type=health&per_page=20"))
+                .andExpect(header("apikey", "test-api-key"))
+                .andRespond(withSuccess("""
+                        {
+                          "data": [
+                            {
+                              "id": "vha_630",
+                              "attributes": {
+                                "name": "Margaret Cochran Corbin VA Campus",
+                                "facilityType": "va_health_facility",
+                                "classification": "VA Medical Center (VAMC)",
+                                "address": {
+                                  "physical": {
+                                    "address1": "423 East 23rd Street",
+                                    "city": "New York",
+                                    "state": "NY",
+                                    "zip": "10010-5011"
+                                  }
+                                },
+                                "phone": { "main": "212-686-7500" },
+                                "website": "https://www.va.gov/new-york-harbor-health-care/locations/margaret-cochran-corbin-va-campus/"
+                              }
+                            }
+                          ],
+                          "meta": {
+                            "distances": [
+                              { "id": "vha_630", "distance": 1.15 }
+                            ]
+                          }
+                        }
+                        """, MediaType.APPLICATION_JSON));
+
+        List<VaFacilitiesClient.VaFacility> facilities =
+                client.searchFacilities(40.75, -73.99, "health", 50);
+
+        assertThat(facilities).hasSize(1);
+        assertThat(facilities.get(0).facilityType()).isEqualTo("va_health_facility");
+        assertThat(facilities.get(0).address1()).isEqualTo("423 East 23rd Street");
+        assertThat(facilities.get(0).distanceMiles()).isEqualTo(1.15);
+        server.verify();
+    }
+
+    @Test
     @DisplayName("Should reject unsupported VA facility types")
     void shouldRejectUnsupportedFacilityTypes() {
         VaFacilitiesClient client = new VaFacilitiesClient(

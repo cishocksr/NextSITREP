@@ -75,6 +75,7 @@ services:
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
       # VA API
       VA_API_KEY: ${VA_API_KEY:-your-va-api-key-here}
+      VA_API_BASE_URL: ${VA_API_BASE_URL:-https://sandbox-api.va.gov}
     depends_on:
       postgres:
         condition: service_healthy

@@ -1,6 +1,7 @@
 package com.veteransconnect.client;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -290,7 +291,9 @@ public class VaFacilitiesClient {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record VaFacilityAttributes(
             @JsonProperty("name") String name,
-            @JsonProperty("facility_type") String facilityType,
+            @JsonProperty("facility_type")
+            @JsonAlias("facilityType")
+            String facilityType,
             @JsonProperty("classification") String classification,
             @JsonProperty("address") VaAddress address,
             @JsonProperty("phone") VaPhone phone,
@@ -304,7 +307,9 @@ public class VaFacilitiesClient {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record VaPhysicalAddress(
-            @JsonProperty("address_1") String address1,
+            @JsonProperty("address_1")
+            @JsonAlias("address1")
+            String address1,
             @JsonProperty("city") String city,
             @JsonProperty("state") String state,
             @JsonProperty("zip") String zip
