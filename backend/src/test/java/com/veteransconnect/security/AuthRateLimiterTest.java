@@ -69,4 +69,26 @@ class AuthRateLimiterTest {
             limiter.checkAllowed(request, "login", "other@example.com");
         }).doesNotThrowAnyException();
     }
+
+    @Test
+    @DisplayName("Should ignore spoofed forwarded headers by default")
+    void shouldIgnoreSpoofedForwardedHeadersByDefault() {
+        AuthRateLimiter limiter = new AuthRateLimiter(
+                1,
+                60_000,
+                Clock.fixed(Instant.parse("2026-06-09T12:00:00Z"), ZoneOffset.UTC)
+        );
+        MockHttpServletRequest firstRequest = new MockHttpServletRequest();
+        firstRequest.setRemoteAddr("127.0.0.1");
+        firstRequest.addHeader("X-Forwarded-For", "203.0.113.10");
+
+        MockHttpServletRequest secondRequest = new MockHttpServletRequest();
+        secondRequest.setRemoteAddr("127.0.0.1");
+        secondRequest.addHeader("X-Forwarded-For", "203.0.113.11");
+
+        limiter.checkAllowed(firstRequest, "login", "veteran@example.com");
+
+        assertThatThrownBy(() -> limiter.checkAllowed(secondRequest, "login", "veteran@example.com"))
+                .isInstanceOf(RateLimitExceededException.class);
+    }
 }

@@ -17,7 +17,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.Mockito.when;
@@ -55,11 +54,14 @@ class UserControllerTest {
     private UserDetailsService userDetailsService; 
 
     private UUID testUserId;
+    private UUID otherUserId;
     private UserResponse userResponse;
+    private final java.security.Principal veteranPrincipal = () -> "veteran@example.com";
 
     @BeforeEach
     void setUp() {
         testUserId = UUID.randomUUID();
+        otherUserId = UUID.randomUUID();
 
         userResponse = new UserResponse(
                 testUserId,
@@ -84,22 +86,24 @@ class UserControllerTest {
         @Test
         @DisplayName("Should return 200 OK with user data when user found")
         void shouldReturn200WhenUserFound() throws Exception {
+            when(userService.getUserByEmail("veteran@example.com")).thenReturn(userResponse);
             when(userService.getUserById(testUserId)).thenReturn(userResponse);
 
-            mockMvc.perform(get("/api/v1/users/{id}", testUserId))
+            mockMvc.perform(get("/api/v1/users/{id}", testUserId)
+                            .principal(veteranPrincipal))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(testUserId.toString()))
                     .andExpect(jsonPath("$.email").value("veteran@example.com"));
         }
 
         @Test
-        @DisplayName("Should return 404 Not Found when user does not exist")
-        void shouldReturn404WhenUserNotFound() throws Exception {
-            when(userService.getUserById(testUserId))
-                    .thenThrow(new UserNotFoundException("User not found with id: " + testUserId));
+        @DisplayName("Should return 403 Forbidden when requesting another user")
+        void shouldReturn403WhenRequestingAnotherUser() throws Exception {
+            when(userService.getUserByEmail("veteran@example.com")).thenReturn(userResponse);
 
-            mockMvc.perform(get("/api/v1/users/{id}", testUserId))
-                    .andExpect(status().isNotFound())
+            mockMvc.perform(get("/api/v1/users/{id}", otherUserId)
+                            .principal(veteranPrincipal))
+                    .andExpect(status().isForbidden())
                     .andExpect(jsonPath("$.message").exists());
         }
     }
@@ -117,19 +121,22 @@ class UserControllerTest {
         void shouldReturn200WhenEmailFound() throws Exception {
             when(userService.getUserByEmail("veteran@example.com")).thenReturn(userResponse);
 
-            mockMvc.perform(get("/api/v1/users").param("email", "veteran@example.com"))
+            mockMvc.perform(get("/api/v1/users")
+                            .principal(veteranPrincipal)
+                            .param("email", "veteran@example.com"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.email").value("veteran@example.com"));
         }
 
         @Test
-        @DisplayName("Should return 404 when email not found")
-        void shouldReturn404WhenEmailNotFound() throws Exception {
-            when(userService.getUserByEmail("nobody@example.com"))
-                    .thenThrow(new UserNotFoundException("User not found with email: nobody@example.com"));
+        @DisplayName("Should return 403 when email belongs to another user")
+        void shouldReturn403WhenEmailBelongsToAnotherUser() throws Exception {
+            when(userService.getUserByEmail("veteran@example.com")).thenReturn(userResponse);
 
-            mockMvc.perform(get("/api/v1/users").param("email", "nobody@example.com"))
-                    .andExpect(status().isNotFound());
+            mockMvc.perform(get("/api/v1/users")
+                            .principal(veteranPrincipal)
+                            .param("email", "nobody@example.com"))
+                    .andExpect(status().isForbidden());
         }
     }
 
@@ -142,23 +149,25 @@ class UserControllerTest {
     class GetUsersByBranch {
 
         @Test
-        @DisplayName("Should return 200 OK with list of users for a branch")
-        void shouldReturn200WithUserList() throws Exception {
-            when(userService.getUsersByBranch(BranchOfService.ARMY))
-                    .thenReturn(List.of(userResponse));
+        @DisplayName("Should return current user when branch matches")
+        void shouldReturnCurrentUserWhenBranchMatches() throws Exception {
+            when(userService.getUserByEmail("veteran@example.com")).thenReturn(userResponse);
 
-            mockMvc.perform(get("/api/v1/users").param("branch", "ARMY"))
+            mockMvc.perform(get("/api/v1/users")
+                            .principal(veteranPrincipal)
+                            .param("branch", "ARMY"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$[0].branchOfService").value("ARMY"));
         }
 
         @Test
-        @DisplayName("Should return 200 OK with empty list when no users in branch")
+        @DisplayName("Should return empty list when branch does not match current user")
         void shouldReturn200WithEmptyList() throws Exception {
-            when(userService.getUsersByBranch(BranchOfService.SPACE_FORCE))
-                    .thenReturn(List.of());
+            when(userService.getUserByEmail("veteran@example.com")).thenReturn(userResponse);
 
-            mockMvc.perform(get("/api/v1/users").param("branch", "SPACE_FORCE"))
+            mockMvc.perform(get("/api/v1/users")
+                            .principal(veteranPrincipal)
+                            .param("branch", "SPACE_FORCE"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isEmpty());
         }
@@ -173,23 +182,25 @@ class UserControllerTest {
     class GetUsersByZipCode {
 
         @Test
-        @DisplayName("Should return 200 OK with list of users for a zip code")
-        void shouldReturn200WithUserList() throws Exception {
-            when(userService.getUsersByZipCode("12345"))
-                    .thenReturn(List.of(userResponse));
+        @DisplayName("Should return current user when zip code matches")
+        void shouldReturnCurrentUserWhenZipMatches() throws Exception {
+            when(userService.getUserByEmail("veteran@example.com")).thenReturn(userResponse);
 
-            mockMvc.perform(get("/api/v1/users").param("zipCode", "12345"))
+            mockMvc.perform(get("/api/v1/users")
+                            .principal(veteranPrincipal)
+                            .param("zipCode", "12345"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$[0].zipCode").value("12345"));
         }
 
         @Test
-        @DisplayName("Should return 200 OK with empty list when no users in zip code")
+        @DisplayName("Should return empty list when zip code does not match current user")
         void shouldReturn200WithEmptyList() throws Exception {
-            when(userService.getUsersByZipCode("99999"))
-                    .thenReturn(List.of());
+            when(userService.getUserByEmail("veteran@example.com")).thenReturn(userResponse);
 
-            mockMvc.perform(get("/api/v1/users").param("zipCode", "99999"))
+            mockMvc.perform(get("/api/v1/users")
+                            .principal(veteranPrincipal)
+                            .param("zipCode", "99999"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isEmpty());
         }
@@ -206,7 +217,10 @@ class UserControllerTest {
         @Test
         @DisplayName("Should return 200 OK with empty list when no query params provided")
         void shouldReturn200EmptyListWithNoParams() throws Exception {
-            mockMvc.perform(get("/api/v1/users"))
+            when(userService.getUserByEmail("veteran@example.com")).thenReturn(userResponse);
+
+            mockMvc.perform(get("/api/v1/users")
+                            .principal(veteranPrincipal))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isEmpty());
         }

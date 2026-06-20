@@ -12,6 +12,9 @@ import type {
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
 
+const CSRF_COOKIE_NAME = "XSRF-TOKEN";
+const CSRF_HEADER_NAME = "X-XSRF-TOKEN";
+
 let onUnauthorized: (() => void) | null = null;
 export function setOnUnauthorized(fn: () => void) {
   onUnauthorized = fn;
@@ -20,6 +23,34 @@ export function setOnUnauthorized(fn: () => void) {
 type ApiRequestOptions = RequestInit & {
   skipUnauthorizedHandler?: boolean;
 };
+
+function isUnsafeMethod(method?: string): boolean {
+  const normalized = method?.toUpperCase() ?? "GET";
+  return !["GET", "HEAD", "OPTIONS", "TRACE"].includes(normalized);
+}
+
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+
+  const cookie = document.cookie
+    .split("; ")
+    .find((entry) => entry.startsWith(`${name}=`));
+
+  if (!cookie) return null;
+  return decodeURIComponent(cookie.slice(name.length + 1));
+}
+
+async function getCsrfToken(): Promise<string | null> {
+  let token = readCookie(CSRF_COOKIE_NAME);
+  if (token) return token;
+
+  await fetch(`${BASE_URL}/api/v1/auth/csrf`, {
+    credentials: "include",
+  });
+
+  token = readCookie(CSRF_COOKIE_NAME);
+  return token;
+}
 
 // ─── Core Fetch Wrapper ───────────────────────────────────────────────────────
 
@@ -33,6 +64,13 @@ async function request<T>(
     "Content-Type": "application/json",
     ...(fetchOptions.headers as Record<string, string>),
   };
+
+  if (isUnsafeMethod(fetchOptions.method)) {
+    const csrfToken = await getCsrfToken();
+    if (csrfToken) {
+      headers[CSRF_HEADER_NAME] = csrfToken;
+    }
+  }
 
   const res = await fetch(`${BASE_URL}${path}`, {
     ...fetchOptions,

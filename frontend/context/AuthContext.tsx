@@ -51,17 +51,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push("/");
   }, [router]);
 
-  const handleAuthResponse = useCallback((auth: AuthResponse) => {
-    saveAuth(auth);
-    setUser({
-      userId: auth.userId,
-      email: auth.email,
-      firstName: auth.firstName,
-      lastName: auth.lastName,
-      branchOfService: auth.branchOfService,
-      zipCode: auth.zipCode,
-    });
-  }, []);
+  const handleAuthResponse = useCallback(
+    (auth: AuthResponse, persist = true) => {
+      if (persist) {
+        saveAuth(auth);
+      }
+      setUser({
+        userId: auth.userId,
+        email: auth.email,
+        firstName: auth.firstName,
+        lastName: auth.lastName,
+        branchOfService: auth.branchOfService,
+        zipCode: auth.zipCode,
+      });
+    },
+    [],
+  );
 
   // Rehydrate from the HttpOnly cookie on mount.
   useEffect(() => {
@@ -77,7 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const auth = await authApi.me();
         if (!isMounted) return;
-        handleAuthResponse(auth);
+        handleAuthResponse(auth, false);
       } catch {
         if (!isMounted) return;
         clearAuth();

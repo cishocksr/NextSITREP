@@ -5,8 +5,10 @@ import com.veteransconnect.model.enums.BranchOfService;
 import com.veteransconnect.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.UUID;
 
@@ -36,7 +38,12 @@ public class UserController {
     // @PathVariable binds the {id} URL segment to the method parameter.
     // Spring automatically converts the String "id" to UUID.
     @GetMapping("/{id}")
-    public ResponseEntity<UserResponse> getUserById(@PathVariable UUID id) {
+    public ResponseEntity<UserResponse> getUserById(@PathVariable UUID id, Principal principal) {
+        UserResponse currentUser = userService.getUserByEmail(principal.getName());
+        if (!currentUser.id().equals(id)) {
+            throw new AccessDeniedException("Cannot access another user's profile");
+        }
+
         UserResponse response = userService.getUserById(id);
         return ResponseEntity.ok(response);
     }
@@ -54,22 +61,30 @@ public class UserController {
     public ResponseEntity<?> getUsers(
             @RequestParam(required = false) String email,
             @RequestParam(required = false) BranchOfService branch,
-            @RequestParam(required = false) String zipCode) {
+            @RequestParam(required = false) String zipCode,
+            Principal principal) {
+
+        UserResponse currentUser = userService.getUserByEmail(principal.getName());
 
         if (email != null) {
-            return ResponseEntity.ok(userService.getUserByEmail(email));
+            if (!currentUser.email().equalsIgnoreCase(email.trim())) {
+                throw new AccessDeniedException("Cannot access another user's profile");
+            }
+            return ResponseEntity.ok(currentUser);
         }
 
         if (branch != null) {
-            List<UserResponse> responses = userService.getUsersByBranch(branch);
-            return ResponseEntity.ok(responses);
+            return ResponseEntity.ok(
+                    currentUser.branchOfService() == branch ? List.of(currentUser) : List.of()
+            );
         }
 
         // getUsersByZipCode is now properly exposed (previously implemented in service
         // but missing from this controller)
         if (zipCode != null) {
-            List<UserResponse> responses = userService.getUsersByZipCode(zipCode);
-            return ResponseEntity.ok(responses);
+            return ResponseEntity.ok(
+                    currentUser.zipCode().equals(zipCode.trim()) ? List.of(currentUser) : List.of()
+            );
         }
 
         // No query params — return empty list rather than an error

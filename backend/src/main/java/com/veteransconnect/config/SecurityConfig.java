@@ -21,6 +21,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -72,13 +74,17 @@ public class SecurityConfig {
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        CsrfTokenRequestAttributeHandler csrfRequestHandler = new CsrfTokenRequestAttributeHandler();
+        csrfRequestHandler.setCsrfRequestAttributeName(null);
+
         http
             // ── CSRF ─────────────────────────────────────────────────────────
-            // CSRF (Cross-Site Request Forgery) protection is built for
-            // browser-based apps that use session cookies.
-            // Since our API is stateless (JWT, no cookies), CSRF doesn't apply —
-            // we disable it to keep things clean.
-            .csrf(AbstractHttpConfigurer::disable)
+            // Browser clients authenticate with an HttpOnly JWT cookie, so
+            // state-changing requests must prove they originated from our app.
+            .csrf(csrf -> csrf
+                    .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                    .csrfTokenRequestHandler(csrfRequestHandler)
+            )
 
             // ── CORS ─────────────────────────────────────────────────────────
             // Apply our corsConfigurationSource bean (defined below).
@@ -94,7 +100,8 @@ public class SecurityConfig {
                 .requestMatchers(
                         "/api/v1/auth/register",
                         "/api/v1/auth/login",
-                        "/api/v1/auth/logout"
+                        "/api/v1/auth/logout",
+                        "/api/v1/auth/csrf"
                 ).permitAll()
                 .requestMatchers("/actuator/health").permitAll()
 
@@ -199,7 +206,8 @@ public class SecurityConfig {
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
         // Allow all standard headers plus Authorization for non-browser API clients
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
+        // and X-XSRF-TOKEN for browser clients using the HttpOnly auth cookie.
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-XSRF-TOKEN"));
 
         // Allow the frontend to send/receive the HttpOnly session cookie
         config.setAllowCredentials(true);
