@@ -1,217 +1,204 @@
-# Veteran Connection
+# VeteransConnect
 
-[![CI Pipeline](https://github.com/YOUR_USERNAME/veteran-connection/actions/workflows/ci.yml/badge.svg)](https://github.com/cishocksr/veteran-connection/actions/workflows/ci.yml)
-[![Dependency Check](https://github.com/cishocksr/veterans-connection/actions/workflows/dependency-check.yml/badge.svg)](https://github.com/cishocksr/veteran-connection/actions/workflows/dependency-check.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI Pipeline](https://github.com/cishocksr/veterans-connect/actions/workflows/ci.yml/badge.svg)](https://github.com/cishocksr/veterans-connect/actions/workflows/ci.yml)
+[![Dependency Check](https://github.com/cishocksr/veterans-connect/actions/workflows/dependency-check.yml/badge.svg)](https://github.com/cishocksr/veterans-connect/actions/workflows/dependency-check.yml)
 
-A full-stack web application connecting US Military Veterans with essential resources including housing, medical care, education, and employment assistance.
+VeteransConnect is a full-stack web application for helping U.S. military veterans find, save, and organize nearby resources for healthcare, benefits, education, housing, employment, and related support.
 
-> **Note**: This is an active learning project following an 18-phase curriculum. See [TODO.md](./TODO.md) for the complete roadmap.
+This repository is an active learning and portfolio project. It is built as a realistic production-style application, but it should not be treated as an official VA service or as professional legal, medical, financial, or benefits advice.
 
-## 🎯 Project Goals
+## Current Features
 
-- **Primary**: Build a comprehensive resource directory for US Military Veterans
-- **Learning**: Master full-stack development through hands-on practice
-- **Portfolio**: Demonstrate professional development practices and modern tech stack
+- Account registration and login with Spring Security, BCrypt password hashing, JWT-backed HttpOnly session cookies, CSRF protection, and basic auth rate limiting.
+- Veteran profile fields for branch of service and zip code.
+- Resource search endpoints backed by the VA Facilities API sandbox and OpenStreetMap Nominatim geocoding.
+- Saved resources with personal notes.
+- Authenticated dashboard pages for home, resource search, and saved resources.
+- Frontend unit tests with Vitest and React Testing Library.
+- Backend unit, controller, repository, and client tests with JUnit 5, Mockito, AssertJ, H2, and JaCoCo coverage checks.
+- GitHub Actions CI for backend compile/tests and frontend lint, format, type check, and build.
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Backend
 
-- **Java 21 LTS** with **Spring Boot 3.4.13**
-- **PostgreSQL 15** for database
-- **Spring Security** for authentication
-- **Spring Data JPA** for ORM
-- **Maven** for dependency management
-- **Lombok** for code generation
+- Java 21
+- Spring Boot 3.4.13
+- Spring Web, Spring Security, Spring Data JPA, validation, and actuator
+- PostgreSQL 15 for local development
+- Flyway database migrations
+- Maven
+- Lombok
+- JJWT
 
 ### Frontend
 
-- **Next.js 16** (React 19) with **TypeScript**
-- **Tailwind CSS v4** for styling
-- **shadcn/ui** for component library
-- **Bun** as JavaScript runtime and package manager
-- **Biome** for linting and formatting
+- Next.js 16 with the App Router
+- React 19
+- TypeScript
+- Tailwind CSS v4
+- Bun
+- Biome
+- Vitest and React Testing Library
 
-### DevOps & Tools
+### Local Infrastructure
 
-- **Docker Compose** for local PostgreSQL
-- **GitHub Actions** for CI/CD
-- **JWT** for authentication tokens
+- Docker Compose for PostgreSQL
+- Optional pgAdmin profile
+- Optional full-stack Docker profile for backend and frontend containers
 
-## 📁 Project Structure
+## Project Structure
 
-```
-veteran-connection/
+```text
+veterans-connect/
 ├── backend/              # Spring Boot API
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/    # Java source code
-│   │   │   └── resources/
-│   │   └── test/         # Unit and integration tests
-│   ├── pom.xml          # Maven dependencies
-│   └── mvnw             # Maven wrapper
-├── fontend/             # Next.js application
-│   ├── app/             # Next.js app directory
-│   ├── public/          # Static assets
-│   ├── biome.json       # Biome configuration
-│   └── package.json     # Node dependencies
-├── .github/
-│   ├── workflows/       # GitHub Actions CI/CD
-│   └── ISSUE_TEMPLATE/  # Issue templates
-├── docker-compose.yml   # PostgreSQL container
-└── TODO.md             # 18-phase curriculum
+│   ├── src/main/java/    # Application source
+│   ├── src/main/resources/
+│   │   └── db/migration/ # Flyway migrations
+│   ├── src/test/         # Backend tests
+│   ├── pom.xml
+│   └── mvnw
+├── frontend/             # Next.js application
+│   ├── app/              # App Router pages and layouts
+│   ├── components/
+│   ├── context/
+│   ├── lib/
+│   ├── test/
+│   ├── package.json
+│   └── biome.json
+├── docs/                 # Project notes and learning documentation
+├── .github/workflows/    # CI workflow
+├── docker-compose.yml
+└── README.md
 ```
 
-## 🚀 Getting Started
+## Prerequisites
 
-### Prerequisites
+- Java 21 or newer
+- Bun
+- Docker, for local PostgreSQL
+- Git
+- A VA Facilities API sandbox key for live resource search
 
-- **Java 21+** (JDK)
-- **Bun** (latest)
-- **PostgreSQL 15** (or use Docker)
-- **Git**
+## Environment Setup
 
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/YOUR_USERNAME/veteran-connection.git
-cd veteran-connection
-```
-
-### 2. Start PostgreSQL (Docker)
+Create the root Docker Compose environment file:
 
 ```bash
-docker-compose up -d
-```
-
-This starts PostgreSQL on `localhost:5432` with:
-
-- Database: `veteran_connection`
-- Username: `postgres`
-- Password: `postgres`
-
-### 3. Setup Backend
-
-```bash
-cd backend
-
-# Create .env file from example
 cp .env.example .env
-
-# Build and run
-./mvnw spring-boot:run
 ```
 
-Backend runs on `http://localhost:8080`
+Docker Compose reads this file automatically. If you run the backend directly with Maven, provide the same values through your shell or IDE environment. At minimum, set:
 
-### 4. Setup Frontend
+```text
+POSTGRES_DB=veteran_connection
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=<local-password>
+JWT_SECRET=<base64-encoded-32-byte-secret>
+VA_API_KEY=<your-va-facilities-sandbox-key>
+CORS_ALLOWED_ORIGINS=http://localhost:3000
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+```
+
+Generate a development JWT secret with:
 
 ```bash
-cd fontend
-
-# Create .env.local file from example
-cp .env.example .env.local
-
-# Install dependencies
-bun install
-
-# Run development server
-bun dev
+openssl rand -base64 32
 ```
 
-Frontend runs on `http://localhost:3000`
-
-## 🧪 Running Tests
-
-### Backend Tests
+For the frontend, create a local env file when running Next.js directly:
 
 ```bash
-cd backend
-./mvnw test
+cp frontend/.env.local.example frontend/.env.local
 ```
 
-### Frontend Linting
+## Running Locally
+
+Start PostgreSQL:
 
 ```bash
-cd fontend
-bun run lint
-bun run type-check
+docker-compose up -d postgres
 ```
 
-## 🏗️ Development Workflow
-
-This project follows a **professional Git workflow** even though it's a solo project:
-
-1. **Feature branches**: Create branches from `main` for each feature/phase
-2. **Pull requests**: Use PR template for all changes
-3. **CI/CD**: All PRs must pass automated checks
-4. **Code review**: Self-review using the PR template checklist
-
-### Creating a Feature Branch
+Run the backend after setting the needed backend environment variables:
 
 ```bash
-git checkout -b feature/phase-2-tdd-setup
-# Make changes
-git add .
-git commit -m "feat: setup TDD infrastructure"
-git push origin feature/phase-2-tdd-setup
-# Create PR on GitHub
+backend/mvnw -f backend/pom.xml spring-boot:run
 ```
 
-## 📚 Curriculum Progress
+The backend runs at `http://localhost:8080`.
 
-This project follows an 18-phase structured curriculum. Current progress:
+Install frontend dependencies and start Next.js:
 
-- [x] **Phase 1**: Project Setup & CI/CD Foundation
-- [ ] **Phase 2**: Test-Driven Development Setup
-- [ ] **Phase 3**: Spring Boot Fundamentals
-- [ ] **Phase 4**: Database Design with JPA
-- [ ] **Phase 5**: Spring Security & JWT
-- [ ] **Phase 6**: React Components with shadcn/ui
-- [ ] ... (See [TODO.md](./TODO.md) for complete curriculum)
+```bash
+bun install --cwd frontend
+bun run --cwd frontend dev
+```
 
-## 🤝 Contributing
+The frontend runs at `http://localhost:3000`.
 
-While this is primarily a learning project, contributions and suggestions are welcome!
+## Optional Docker Profiles
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+Start PostgreSQL with pgAdmin:
 
-Please use the provided issue templates for bugs, features, or learning tasks.
+```bash
+docker-compose --profile tools up -d
+```
 
-## 📖 Learning Blog
+Start the full stack in Docker:
 
-Follow the development journey and technical learnings:
+```bash
+docker-compose --profile full-stack up --build
+```
 
-- [Blog Link Coming Soon]
+## Quality Checks
 
-## 📝 License
+Run backend tests:
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+```bash
+backend/mvnw -f backend/pom.xml test -B
+```
 
-## 🎓 Educational Context
+Run frontend checks:
 
-This project serves as a comprehensive learning experience covering:
+```bash
+bun run --cwd frontend lint:check
+bun run --cwd frontend format:check
+bun run --cwd frontend type-check
+bun run --cwd frontend test:run
+bun run --cwd frontend build
+```
 
-- Full-stack web development
-- Test-Driven Development (TDD)
-- RESTful API design
-- Database design and ORM
-- Authentication and authorization
-- Modern frontend development
-- CI/CD pipelines
-- Professional development workflows
+## API Notes
 
-## 🔗 Resources
+The backend exposes versioned API routes under `/api/v1`.
 
-- [Spring Boot Documentation](https://spring.io/projects/spring-boot)
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Anthropic Claude Docs](https://docs.claude.com)
-- [TODO.md](./TODO.md) - Complete curriculum roadmap
+Auth routes:
 
----
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/logout`
+- `GET /api/v1/auth/me`
+- `GET /api/v1/auth/csrf`
 
-**Built with** ☕ **and** 🧠 **as a learning journey**
+Resource routes:
+
+- `GET /api/v1/resources/search`
+- `GET /api/v1/resources/saved`
+- `POST /api/v1/resources/saved`
+- `PATCH /api/v1/resources/saved/{id}/notes`
+- `DELETE /api/v1/resources/saved/{id}`
+
+## Public Readiness Notes
+
+- Do not commit `.env`, `.env.local`, API keys, JWT secrets, database credentials, or production domain settings.
+- The default values in tracked example files are placeholders for local development.
+- The project currently has no tracked license file; add one before advertising a specific open-source license.
+- Some documentation in `docs/archive/` intentionally preserves older setup notes and may mention historical paths such as `fontend/`.
+
+## Documentation
+
+- [Developer workflow](docs/DEVELOPER_WORKFLOW.md)
+- [CI/CD notes](docs/CI_CD.md)
+- [Phase 1 checklist](docs/PHASE_1_CHECKLIST.md)
+- [Authentication guide](docs/auth-java-beginner-guide.md)

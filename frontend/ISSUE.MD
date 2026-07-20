@@ -1,9 +1,0 @@
-blank_issues_enabled: true
-contact_links:
-
-- name: 📚 Curriculum Reference
-  url: https://github.com/YOUR_USERNAME/veteran-connection/blob/main/TODO.md
-  about: View the complete 18-phase curriculum roadmap
-- name: 💬 Discussion Forum
-  url: https://github.com/YOUR_USERNAME/veteran-connection/discussions
-  about: Ask questions or discuss ideas with the community
