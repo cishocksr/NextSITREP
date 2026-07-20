@@ -6,6 +6,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { authApi, setOnUnauthorized } from "@/lib/api";
@@ -41,8 +42,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const authVersionRef = useRef(0);
 
   const logout = useCallback(() => {
+    authVersionRef.current += 1;
     void authApi.logout().catch(() => {
       // Local cleanup still happens even if the server is unreachable.
     });
@@ -71,6 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Rehydrate from the HttpOnly cookie on mount.
   useEffect(() => {
     let isMounted = true;
+    const loadVersion = authVersionRef.current;
     setOnUnauthorized(logout);
 
     async function loadSession() {
@@ -81,10 +85,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       try {
         const auth = await authApi.me();
-        if (!isMounted) return;
+        if (!isMounted || loadVersion !== authVersionRef.current) return;
         handleAuthResponse(auth, false);
       } catch {
-        if (!isMounted) return;
+        if (!isMounted || loadVersion !== authVersionRef.current) return;
         clearAuth();
         setUser(null);
       } finally {
@@ -115,8 +119,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(
     async (data: LoginRequest) => {
       const auth = await authApi.login(data);
+      authVersionRef.current += 1;
       handleAuthResponse(auth);
-      router.push("/resources");
+      router.push("/home");
     },
     [handleAuthResponse, router],
   );
@@ -124,8 +129,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = useCallback(
     async (data: UserRegistrationRequest) => {
       const auth = await authApi.register(data);
+      authVersionRef.current += 1;
       handleAuthResponse(auth);
-      router.push("/resources");
+      router.push("/home");
     },
     [handleAuthResponse, router],
   );
