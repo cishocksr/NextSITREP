@@ -88,7 +88,7 @@ describe("AuthProvider", () => {
     expect(screen.getByText("Pat")).toBeInTheDocument();
     expect(localStorage.getItem("vc_token")).toBeNull();
     expect(localStorage.getItem("vc_user")).toContain("pat@example.com");
-    expect(getMockRouter().push).toHaveBeenCalledWith("/home");
+    expect(getMockRouter().push).toHaveBeenCalledWith("/dashboard");
   });
 
   it("keeps a new registration signed in when the startup session check fails late", async () => {
@@ -119,7 +119,7 @@ describe("AuthProvider", () => {
       expect(screen.getByTestId("auth-state")).toHaveTextContent("signed-in");
     });
     expect(screen.getByText("Pat")).toBeInTheDocument();
-    expect(getMockRouter().push).toHaveBeenCalledWith("/home");
+    expect(getMockRouter().push).toHaveBeenCalledWith("/dashboard");
   });
 
   it("clears stored auth and redirects home on logout", async () => {

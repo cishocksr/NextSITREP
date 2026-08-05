@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { ResourceCard } from "@/components/resources/ResourceCard";
 import { ResourceFilters } from "@/components/resources/ResourceFilters";
@@ -8,10 +9,23 @@ import { Alert } from "@/components/ui/Alert";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/context/AuthContext";
 import { resourceApi } from "@/lib/api";
-import type { ResourceSearchParams, ResourceSearchResult } from "@/lib/types";
+import type {
+  ResourceCategory,
+  ResourceSearchParams,
+  ResourceSearchResult,
+} from "@/lib/types";
+import { CATEGORY_LABELS } from "@/lib/types";
 
-export default function ResourcesPage() {
+function ResourcesContent() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const categoryParam = searchParams.get("category");
+  const keywordParam = searchParams.get("keyword") ?? "";
+  const radiusParam = Number(searchParams.get("radius") ?? "25");
+  const defaultCategory =
+    categoryParam && categoryParam in CATEGORY_LABELS
+      ? (categoryParam as ResourceCategory)
+      : "";
   const [results, setResults] = useState<ResourceSearchResult[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +64,9 @@ export default function ResourcesPage() {
         <div className="mb-8">
           <ResourceFilters
             defaultZip={user?.zipCode ?? ""}
+            defaultCategory={defaultCategory}
+            defaultKeyword={keywordParam}
+            defaultRadius={Number.isNaN(radiusParam) ? 25 : radiusParam}
             onSearch={handleSearch}
             isLoading={isLoading}
           />
@@ -118,5 +135,13 @@ export default function ResourcesPage() {
         )}
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function ResourcesPage() {
+  return (
+    <Suspense fallback={<LoadingSpinner size="lg" message="Loading..." />}>
+      <ResourcesContent />
+    </Suspense>
   );
 }

@@ -66,7 +66,6 @@ veterans-connect/
 │   ├── test/
 │   ├── package.json
 │   └── biome.json
-├── docs/                 # Project notes and learning documentation
 ├── .github/workflows/    # CI workflow
 ├── docker-compose.yml
 └── README.md
@@ -194,11 +193,3 @@ Resource routes:
 - Do not commit `.env`, `.env.local`, API keys, JWT secrets, database credentials, or production domain settings.
 - The default values in tracked example files are placeholders for local development.
 - The project currently has no tracked license file; add one before advertising a specific open-source license.
-- Some documentation in `docs/archive/` intentionally preserves older setup notes and may mention historical paths such as `fontend/`.
-
-## Documentation
-
-- [Developer workflow](docs/DEVELOPER_WORKFLOW.md)
-- [CI/CD notes](docs/CI_CD.md)
-- [Phase 1 checklist](docs/PHASE_1_CHECKLIST.md)
-- [Authentication guide](docs/auth-java-beginner-guide.md)

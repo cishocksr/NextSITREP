@@ -60,7 +60,7 @@ describe("Navbar", () => {
 
     expect(
       screen.getByRole("link", { name: /veteransconnect/i }),
-    ).toHaveAttribute("href", "/home");
+    ).toHaveAttribute("href", "/dashboard");
     for (const savedLink of screen.getAllByRole("link", { name: "Saved" })) {
       expect(savedLink).toHaveClass("bg-blue-50", "text-blue-700");
     }

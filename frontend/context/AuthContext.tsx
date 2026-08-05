@@ -121,7 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const auth = await authApi.login(data);
       authVersionRef.current += 1;
       handleAuthResponse(auth);
-      router.push("/home");
+      router.push("/dashboard");
     },
     [handleAuthResponse, router],
   );
@@ -131,7 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const auth = await authApi.register(data);
       authVersionRef.current += 1;
       handleAuthResponse(auth);
-      router.push("/home");
+      router.push("/dashboard");
     },
     [handleAuthResponse, router],
   );

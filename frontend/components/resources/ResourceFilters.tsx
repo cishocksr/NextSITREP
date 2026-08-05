@@ -9,6 +9,9 @@ import { CATEGORY_LABELS } from "@/lib/types";
 
 interface ResourceFiltersProps {
   defaultZip?: string;
+  defaultCategory?: ResourceCategory | "";
+  defaultKeyword?: string;
+  defaultRadius?: number;
   onSearch: (params: ResourceSearchParams) => void;
   isLoading?: boolean;
 }
@@ -29,13 +32,18 @@ const radiusOptions = [
 
 export function ResourceFilters({
   defaultZip = "",
+  defaultCategory = "",
+  defaultKeyword = "",
+  defaultRadius = 25,
   onSearch,
   isLoading = false,
 }: ResourceFiltersProps) {
   const [zipCode, setZipCode] = useState(defaultZip);
-  const [category, setCategory] = useState<ResourceCategory | "">("");
-  const [keyword, setKeyword] = useState("");
-  const [radius, setRadius] = useState("25");
+  const [category, setCategory] = useState<ResourceCategory | "">(
+    defaultCategory,
+  );
+  const [keyword, setKeyword] = useState(defaultKeyword);
+  const [radius, setRadius] = useState(String(defaultRadius));
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

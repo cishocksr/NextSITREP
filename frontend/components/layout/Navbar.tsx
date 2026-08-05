@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { BRANCH_LABELS } from "@/lib/types";
 
 const navLinks = [
-  { href: "/home", label: "Home" },
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/resources", label: "Find Resources" },
   { href: "/saved", label: "Saved" },
 ];
@@ -22,7 +22,7 @@ export function Navbar() {
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Logo */}
           <Link
-            href={isAuthenticated ? "/home" : "/"}
+            href={isAuthenticated ? "/dashboard" : "/"}
             className="flex items-center gap-2 shrink-0"
           >
             <span className="text-xl" aria-hidden="true">
