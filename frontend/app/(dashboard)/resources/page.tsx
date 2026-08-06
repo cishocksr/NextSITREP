@@ -22,6 +22,7 @@ function ResourcesContent() {
   const categoryParam = searchParams.get("category");
   const keywordParam = searchParams.get("keyword") ?? "";
   const radiusParam = Number(searchParams.get("radius") ?? "25");
+  const zipCodeParam = searchParams.get("zipCode") ?? "";
   const defaultCategory =
     categoryParam && categoryParam in CATEGORY_LABELS
       ? (categoryParam as ResourceCategory)
@@ -63,7 +64,7 @@ function ResourcesContent() {
         {/* Filters */}
         <div className="mb-8">
           <ResourceFilters
-            defaultZip={user?.zipCode ?? ""}
+            defaultZip={zipCodeParam || user?.zipCode || ""}
             defaultCategory={defaultCategory}
             defaultKeyword={keywordParam}
             defaultRadius={Number.isNaN(radiusParam) ? 25 : radiusParam}
