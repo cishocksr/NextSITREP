@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -44,6 +44,22 @@ export function ResourceFilters({
   );
   const [keyword, setKeyword] = useState(defaultKeyword);
   const [radius, setRadius] = useState(String(defaultRadius));
+
+  useEffect(() => {
+    setZipCode(defaultZip);
+  }, [defaultZip]);
+
+  useEffect(() => {
+    setCategory(defaultCategory);
+  }, [defaultCategory]);
+
+  useEffect(() => {
+    setKeyword(defaultKeyword);
+  }, [defaultKeyword]);
+
+  useEffect(() => {
+    setRadius(String(defaultRadius));
+  }, [defaultRadius]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

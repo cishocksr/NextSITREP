@@ -1,7 +1,14 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { ResourceCard } from "@/components/resources/ResourceCard";
 import { ResourceFilters } from "@/components/resources/ResourceFilters";
@@ -33,8 +40,20 @@ function ResourcesContent() {
   const [lastSearch, setLastSearch] = useState<ResourceSearchParams | null>(
     null,
   );
+  const defaultZip = zipCodeParam || user?.zipCode || "";
+  const searchIntentKey = useMemo(
+    () =>
+      new URLSearchParams({
+        zipCode: defaultZip,
+        category: defaultCategory,
+        keyword: keywordParam,
+        radius: String(Number.isNaN(radiusParam) ? 25 : radiusParam),
+      }).toString(),
+    [defaultCategory, defaultZip, keywordParam, radiusParam],
+  );
+  const lastAutoSearchKey = useRef<string | null>(null);
 
-  async function handleSearch(params: ResourceSearchParams) {
+  const handleSearch = useCallback(async (params: ResourceSearchParams) => {
     setIsLoading(true);
     setError(null);
     setLastSearch(params);
@@ -48,7 +67,32 @@ function ResourcesContent() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    const hasSearchIntent =
+      zipCodeParam !== "" || categoryParam !== null || keywordParam !== "";
+
+    if (!hasSearchIntent || defaultZip.length !== 5) return;
+    if (lastAutoSearchKey.current === searchIntentKey) return;
+
+    lastAutoSearchKey.current = searchIntentKey;
+    void handleSearch({
+      zipCode: defaultZip,
+      category: defaultCategory || undefined,
+      keyword: keywordParam || undefined,
+      radius: Number.isNaN(radiusParam) ? 25 : radiusParam,
+    });
+  }, [
+    categoryParam,
+    defaultCategory,
+    defaultZip,
+    handleSearch,
+    keywordParam,
+    radiusParam,
+    searchIntentKey,
+    zipCodeParam,
+  ]);
 
   return (
     <ProtectedRoute>
@@ -64,7 +108,7 @@ function ResourcesContent() {
         {/* Filters */}
         <div className="mb-8">
           <ResourceFilters
-            defaultZip={zipCodeParam || user?.zipCode || ""}
+            defaultZip={defaultZip}
             defaultCategory={defaultCategory}
             defaultKeyword={keywordParam}
             defaultRadius={Number.isNaN(radiusParam) ? 25 : radiusParam}

@@ -20,6 +20,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Set;
 
 /**
  * JWT Authentication Filter — runs once for every incoming HTTP request.
@@ -42,11 +43,23 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    private static final Set<String> PUBLIC_AUTH_PATHS = Set.of(
+            "/api/v1/auth/register",
+            "/api/v1/auth/login",
+            "/api/v1/auth/logout",
+            "/api/v1/auth/csrf"
+    );
+
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
 
     @Value("${security.jwt.cookie-name}")
     private String jwtCookieName;
+
+    @Override
+    protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
+        return PUBLIC_AUTH_PATHS.contains(request.getServletPath());
+    }
 
     @Override
     protected void doFilterInternal(

@@ -41,15 +41,11 @@ function readCookie(name: string): string | null {
 }
 
 async function getCsrfToken(): Promise<string | null> {
-  let token = readCookie(CSRF_COOKIE_NAME);
-  if (token) return token;
-
   await fetch(`${BASE_URL}/api/v1/auth/csrf`, {
     credentials: "include",
   });
 
-  token = readCookie(CSRF_COOKIE_NAME);
-  return token;
+  return readCookie(CSRF_COOKIE_NAME);
 }
 
 // ─── Core Fetch Wrapper ───────────────────────────────────────────────────────
@@ -111,6 +107,7 @@ export const authApi = {
     return request("/api/v1/auth/register", {
       method: "POST",
       body: JSON.stringify(data),
+      skipUnauthorizedHandler: true,
     });
   },
 
@@ -118,6 +115,7 @@ export const authApi = {
     return request("/api/v1/auth/login", {
       method: "POST",
       body: JSON.stringify(data),
+      skipUnauthorizedHandler: true,
     });
   },
 
