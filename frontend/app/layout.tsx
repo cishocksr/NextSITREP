@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     template: "%s | VeteransConnect",
   },
   description:
-    "Find veterans resources near you — healthcare, benefits, education, housing, and more.",
+    "Find veterans resources near you, including healthcare, benefits, education, housing, and more.",
 };
 
 export default function RootLayout({

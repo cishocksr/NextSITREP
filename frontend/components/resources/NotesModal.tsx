@@ -18,12 +18,10 @@ export function NotesModal({ resource, onClose, onUpdated }: NotesModalProps) {
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Focus textarea on open
   useEffect(() => {
     textareaRef.current?.focus();
   }, []);
 
-  // Close on Escape
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -47,7 +45,6 @@ export function NotesModal({ resource, onClose, onUpdated }: NotesModalProps) {
   }
 
   return (
-    /* Backdrop */
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <button
         type="button"
@@ -61,14 +58,13 @@ export function NotesModal({ resource, onClose, onUpdated }: NotesModalProps) {
         aria-modal="true"
         aria-labelledby="notes-modal-title"
       >
-        {/* Header */}
         <div className="flex items-start justify-between gap-3 p-6 border-b border-slate-100">
           <div className="flex-1 min-w-0">
             <h2
               id="notes-modal-title"
               className="font-semibold text-slate-900 leading-snug line-clamp-2"
             >
-              Notes — {resource.name}
+              Notes: {resource.name}
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
               Supports plain text, bullet points (- or •), and markdown

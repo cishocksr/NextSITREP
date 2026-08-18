@@ -18,8 +18,8 @@ public interface ResourceSearchService {
      * Search for veteran resources near a zip code.
      *
      * @param zipCode   5-digit US zip code to center the search around
-     * @param category  optional — filter by resource category (null returns all types)
-     * @param keyword   optional — filter results whose name/description contains this text
+     * @param category  optional filter by resource category (null returns all types)
+     * @param keyword   optional filter results whose name/description contains this text
      * @param radiusMiles how far from the zip code to search (null = use default)
      * @param userEmail the currently authenticated veteran's email,
      *                  used to flag which results they've already saved

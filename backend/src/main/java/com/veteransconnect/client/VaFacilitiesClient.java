@@ -22,33 +22,11 @@ import java.util.stream.Collectors;
 
 /**
  * HTTP client for the VA Facilities API (Lighthouse).
- *
- * API documentation: https://developer.va.gov/explore/api/va-facilities
- *
- * The VA Facilities API provides locations, hours, contact info, and services
- * for all VA healthcare facilities, benefits offices, and Vet Centers in the US.
- *
- * Getting an API key:
- *   1. Go to https://developer.va.gov/apply
- *   2. Sign up for the "VA Facilities" API (sandbox approval is instant)
- *   3. Add your key to application.properties as va.api.key
- *
- * Rate limits (sandbox): 60 requests/minute
- *
- * Key endpoint used:
- *   GET /services/va_facilities/v1/facilities
- *   Parameters:
- *     lat      - latitude (from zip code geocoding)
- *     long     - longitude
- *     radius   - search radius in miles (default 50)
- *     type     - facility type: health | benefits | vet_center | cemetery
- *     per_page - results per page (max 100)
  */
 @Service
 @Slf4j
 public class VaFacilitiesClient {
 
-    // API source identifier — stored alongside saved resources so we know where they came from
     public static final String SOURCE_API = "VA_FACILITIES";
     private static final Set<String> SUPPORTED_FACILITY_TYPES = Set.of("health", "benefits", "vet_center");
     private static final int PER_PAGE = 20;
@@ -85,15 +63,6 @@ public class VaFacilitiesClient {
         return factory;
     }
 
-    /**
-     * Search for VA facilities near the given coordinates.
-     *
-     * @param latitude   from GeocodingService
-     * @param longitude  from GeocodingService
-     * @param facilityType VA facility type (health, benefits, vet_center)
-     * @param radiusMiles  search radius — defaults to va.api.facilities.default-radius
-     * @return list of facilities, sorted by distance ascending
-     */
     public List<VaFacility> searchFacilities(
             double latitude,
             double longitude,
@@ -118,12 +87,9 @@ public class VaFacilitiesClient {
                                 .queryParam("long", longitude)
                                 .queryParam("radius", radiusMiles)
                                 .queryParam("type", facilityType)
-                                // Request up to 20 results per search
                                 .queryParam("per_page", PER_PAGE);
                         return builder.build();
                     })
-                    // The VA API requires an API key in the header
-                    // If no key is configured, the header is sent empty — useful for local dev
                     .header("apikey", apiKey)
                     .retrieve()
                     .body(VaApiResponse.class);
@@ -133,8 +99,6 @@ public class VaFacilitiesClient {
                 return Collections.emptyList();
             }
 
-            // Build a distance lookup map: facilityId → distanceMiles
-            // The VA API returns distances in a separate "meta.distances" array
             Map<String, Double> distanceMap = Collections.emptyMap();
             if (response.meta() != null && response.meta().distances() != null) {
                 distanceMap = response.meta().distances().stream()
@@ -146,7 +110,6 @@ public class VaFacilitiesClient {
                         ));
             }
 
-            // Attach distances to each facility
             final Map<String, Double> finalDistanceMap = distanceMap;
             return response.data().stream()
                     .filter(f -> f != null && f.id() != null)
@@ -192,15 +155,6 @@ public class VaFacilitiesClient {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // VA API Response DTOs
-    //
-    // These are Java records that Jackson uses to deserialize the VA API response.
-    // @JsonIgnoreProperties(ignoreUnknown = true) means extra fields in the JSON
-    // (that we don't map here) are simply ignored — this keeps our code stable
-    // if the VA API adds new fields in the future.
-    // ═══════════════════════════════════════════════════════════════════════════
-
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record VaApiResponse(
             @JsonProperty("data") List<VaFacility> data,
@@ -220,17 +174,13 @@ public class VaFacilitiesClient {
 
     /**
      * Represents a single VA facility from the API response.
-     *
-     * We use a custom record with a builder-style `withDistance` helper
-     * so we can attach the distance (from the meta section) after parsing.
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record VaFacility(
             @JsonProperty("id") String id,
             @JsonProperty("attributes") VaFacilityAttributes attributes,
-            Double distanceMiles  // Not in JSON — we populate this from meta.distances
+            Double distanceMiles
     ) {
-        // Constructor used by Jackson (ignores distanceMiles — set separately)
         @com.fasterxml.jackson.annotation.JsonCreator
         public static VaFacility create(
                 @JsonProperty("id") String id,
@@ -238,12 +188,10 @@ public class VaFacilitiesClient {
             return new VaFacility(id, attributes, null);
         }
 
-        // Return a copy with distanceMiles set
         public VaFacility withDistance(Double distance) {
             return new VaFacility(this.id, this.attributes, distance);
         }
 
-        // Convenience accessors so callers don't have to navigate attributes
         public String name() {
             return attributes != null ? attributes.name() : null;
         }
@@ -283,7 +231,6 @@ public class VaFacilitiesClient {
             if (attributes == null || attributes.address() == null) return null;
             VaPhysicalAddress physical = attributes.address().physical();
             if (physical == null || physical.zip() == null) return null;
-            // VA API returns "10010-5050" — we only want the 5-digit part
             return physical.zip().length() > 5 ? physical.zip().substring(0, 5) : physical.zip();
         }
     }

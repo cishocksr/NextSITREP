@@ -1,6 +1,4 @@
 services:
-
-  # ── PostgreSQL ──────────────────────────────────────────────────────────────
   postgres:
     image: postgres:15-alpine
     container_name: vet-connect-db
@@ -21,7 +19,7 @@ services:
     networks:
       - vet-connect-network
 
-  # ── pgAdmin (optional — run with: docker compose --profile tools up) ────────
+  # Optional pgAdmin: docker compose --profile tools up
   # Access at http://localhost:5050
   # Login with PGADMIN_EMAIL / PGADMIN_PASSWORD from your .env
   pgadmin:
@@ -43,8 +41,7 @@ services:
     profiles:
       - tools
 
-  # ── Spring Boot Backend ─────────────────────────────────────────────────────
-  # NOTE: Only needed if running the full stack in Docker.
+  # Only needed if running the full stack in Docker.
   # For active development, run the backend with your IDE or `./mvnw spring-boot:run`
   # and keep only the postgres service running in Docker.
   backend:
@@ -57,13 +54,12 @@ services:
       - "${BACKEND_PORT:-8080}:8080"
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
-      # Database — points to the postgres service by name (Docker DNS resolves "postgres")
+      # Database
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_DB:?ERROR - POSTGRES_DB not set}
       POSTGRES_USER: ${POSTGRES_USER:?ERROR - POSTGRES_USER not set}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?ERROR - POSTGRES_PASSWORD not set}
-      # JWT
       JWT_SECRET: ${JWT_SECRET:?ERROR - JWT_SECRET not set}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
       JWT_COOKIE_NAME: ${JWT_COOKIE_NAME:-vc_session}
@@ -72,7 +68,7 @@ services:
       AUTH_RATE_LIMIT_MAX_ATTEMPTS: ${AUTH_RATE_LIMIT_MAX_ATTEMPTS:-10}
       AUTH_RATE_LIMIT_WINDOW_MS: ${AUTH_RATE_LIMIT_WINDOW_MS:-900000}
       AUTH_RATE_LIMIT_TRUST_FORWARDED_HEADERS: ${AUTH_RATE_LIMIT_TRUST_FORWARDED_HEADERS:-false}
-      # CORS — comma-separated list of allowed frontend origins
+      # CORS
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
       # VA API
       VA_API_KEY: ${VA_API_KEY:-your-va-api-key-here}
@@ -91,8 +87,7 @@ services:
     profiles:
       - full-stack
 
-  # ── Next.js Frontend ────────────────────────────────────────────────────────
-  # NOTE: Same as backend — only needed for full Docker stack.
+  # Only needed if running the full stack in Docker.
   # For active development, run with `bun dev` or `npm run dev`.
   frontend:
     build:

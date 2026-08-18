@@ -49,7 +49,7 @@ export default function LandingPage() {
           <p className="mx-auto max-w-2xl text-lg sm:text-xl text-slate-300 mb-10">
             VeteransConnect helps you quickly discover healthcare, benefits,
             education, and housing resources from the VA and other trusted
-            providers — all in one place.
+            providers, all in one place.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/register">
@@ -144,7 +144,7 @@ export default function LandingPage() {
           It&apos;s free. No spam. Just resources for veterans, by veterans.
         </p>
         <Link href="/register">
-          <Button size="lg">Get Started — It&apos;s Free</Button>
+          <Button size="lg">Get Started Free</Button>
         </Link>
       </section>
     </div>

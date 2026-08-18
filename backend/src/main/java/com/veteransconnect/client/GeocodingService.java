@@ -17,18 +17,6 @@ import java.util.regex.Pattern;
 /**
  * Converts a US zip code into geographic coordinates (latitude/longitude)
  * using the OpenStreetMap Nominatim geocoding API.
- *
- * Why Nominatim?
- *   - Completely free with no API key required
- *   - Based on OpenStreetMap data — excellent US coverage
- *   - Simple REST API
- *
- * Rate limit: Nominatim requires no more than 1 request/second and a
- * descriptive User-Agent header identifying your application (their ToS).
- * For production you'd add a caching layer so the same zip isn't geocoded
- * on every search. That's covered in the future improvements phase.
- *
- * Nominatim docs: https://nominatim.org/release-docs/develop/api/Search/
  */
 @Service
 @Slf4j
@@ -89,19 +77,8 @@ public class GeocodingService {
         return zipCode != null && ZIP_CODE_PATTERN.matcher(zipCode.trim()).matches();
     }
 
-    /**
-     * A simple record to hold the lat/long pair we need.
-     * Java records are perfect for small value objects like this.
-     */
     public record Coordinates(double latitude, double longitude) {}
 
-    /**
-     * Look up the latitude and longitude for a US zip code.
-     *
-     * @param zipCode a 5-digit US zip code
-     * @return Coordinates with latitude and longitude
-     * @throws GeocodingException if the zip code cannot be found
-     */
     public Coordinates getCoordinatesForZipCode(String zipCode) {
         String normalizedZipCode = normalizeZipCode(zipCode);
         log.debug("Geocoding zip code: {}", normalizedZipCode);
@@ -115,12 +92,6 @@ public class GeocodingService {
         }
 
         try {
-            // Nominatim returns a JSON array of results — we take the first one.
-            // The API params:
-            //   postalcode = the zip code to look up
-            //   country    = "us" restricts to United States
-            //   format     = "json" for JSON response
-            //   limit      = 1 because we only need the best match
             List<NominatimResult> results = restClient.get()
                     .uri(uriBuilder -> uriBuilder
                             .path("/search")
@@ -129,9 +100,7 @@ public class GeocodingService {
                             .queryParam("format", "json")
                             .queryParam("limit", "1")
                             .build())
-                    // Nominatim's ToS requires a User-Agent identifying your application
                     .header("User-Agent", userAgent)
-                    // Tell Spring how to deserialize the JSON array into our record list
                     .retrieve()
                     .body(new org.springframework.core.ParameterizedTypeReference<>() {});
 
@@ -171,16 +140,11 @@ public class GeocodingService {
         }
     }
 
-    // ── Nominatim API response DTO ─────────────────────────────────────────────
-    // Nominatim returns latitude and longitude as strings in the JSON.
-    // We use @com.fasterxml.jackson.annotation.JsonProperty to map the "lon" field
-    // (Nominatim uses "lon" not "lng").
     private record NominatimResult(
             @com.fasterxml.jackson.annotation.JsonProperty("lat") String lat,
             @com.fasterxml.jackson.annotation.JsonProperty("lon") String lon
     ) {}
 
-    // ── Custom exception ───────────────────────────────────────────────────────
     public static class GeocodingException extends RuntimeException {
         public GeocodingException(String message) {
             super(message);

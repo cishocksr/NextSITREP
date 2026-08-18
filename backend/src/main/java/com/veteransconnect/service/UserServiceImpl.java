@@ -17,12 +17,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Implementation of UserService interface.
  * Handles business logic for user operations.
- *
- * @RequiredArgsConstructor generates a constructor for all final fields,
- * which Spring uses for dependency injection (constructor injection is preferred
- * over @Autowired field injection — it makes dependencies explicit and testable).
  */
 @Service
 @RequiredArgsConstructor
@@ -30,10 +25,6 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-
-    // PasswordEncoder is defined as a @Bean in SecurityConfig.
-    // We inject it here to BCrypt-hash passwords before storing them.
-    // This way the service layer never touches plaintext passwords.
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -83,23 +74,10 @@ public class UserServiceImpl implements UserService {
                 .collect(Collectors.toList());
     }
 
-    // ========== HELPER METHODS ==========
-
-    /**
-     * Convert User entity to UserResponse DTO.
-     */
     private UserResponse mapToResponse(User user) {
         return UserResponse.from(user);
     }
 
-    /**
-     * Convert UserRegistrationRequest DTO to User entity.
-     *
-     * KEY SECURITY STEP: the password from the request is a plaintext string.
-     * We hash it with BCrypt here so only the hash is ever stored.
-     * BCrypt is one-way — you can never recover the original password from the hash,
-     * which means even if your database is stolen, passwords remain protected.
-     */
     private User mapToEntity(UserRegistrationRequest request) {
         return User.builder()
                 .email(request.email())
@@ -107,7 +85,6 @@ public class UserServiceImpl implements UserService {
                 .lastName(request.lastName())
                 .branchOfService(request.branchOfService())
                 .zipCode(request.zipCode())
-                // Hash the plaintext password before storing — NEVER store raw passwords
                 .passwordHash(passwordEncoder.encode(request.password()))
                 .build();
     }

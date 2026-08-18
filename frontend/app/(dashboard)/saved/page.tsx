@@ -47,7 +47,6 @@ export default function SavedPage() {
     );
   }
 
-  // Category filter tabs
   const categories = Array.from(
     new Set(resources.map((r) => r.category)),
   ) as ResourceCategory[];
@@ -59,7 +58,6 @@ export default function SavedPage() {
   return (
     <ProtectedRoute>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">
@@ -78,12 +76,10 @@ export default function SavedPage() {
           </Link>
         </div>
 
-        {/* Loading */}
         {isLoading && (
           <LoadingSpinner message="Loading your saved resources…" />
         )}
 
-        {/* Error */}
         {error && !isLoading && (
           <Alert
             variant="error"

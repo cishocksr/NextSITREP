@@ -48,8 +48,6 @@ async function getCsrfToken(): Promise<string | null> {
   return readCookie(CSRF_COOKIE_NAME);
 }
 
-// ─── Core Fetch Wrapper ───────────────────────────────────────────────────────
-
 async function request<T>(
   path: string,
   options: ApiRequestOptions = {},
@@ -74,7 +72,6 @@ async function request<T>(
     headers,
   });
 
-  // Unauthorized/forbidden usually means the token is missing, invalid, or expired.
   if (!skipUnauthorizedHandler && (res.status === 401 || res.status === 403)) {
     onUnauthorized?.();
   }
@@ -85,22 +82,19 @@ async function request<T>(
       const body = await res.json();
       message = body.message ?? body.error ?? message;
     } catch {
-      // ignore parse error
+      message = `Request failed (${res.status})`;
     }
     const err = new Error(message) as Error & { status: number };
     err.status = res.status;
     throw err;
   }
 
-  // 204 No Content
   if (res.status === 204) {
     return undefined as T;
   }
 
   return res.json() as Promise<T>;
 }
-
-// ─── Auth Endpoints ───────────────────────────────────────────────────────────
 
 export const authApi = {
   register(data: UserRegistrationRequest): Promise<AuthResponse> {
@@ -132,8 +126,6 @@ export const authApi = {
     });
   },
 };
-
-// ─── Resource Endpoints ───────────────────────────────────────────────────────
 
 export const resourceApi = {
   search(params: ResourceSearchParams): Promise<ResourceSearchResult[]> {

@@ -1,5 +1,3 @@
-// ─── Auth ────────────────────────────────────────────────────────────────────
-
 export type BranchOfService =
   | "ARMY"
   | "NAVY"
@@ -40,8 +38,6 @@ export interface AuthResponse {
   branchOfService: BranchOfService;
   zipCode: string;
 }
-
-// ─── Resources ───────────────────────────────────────────────────────────────
 
 export type ResourceCategory =
   | "HEALTHCARE"
@@ -122,16 +118,12 @@ export interface UpdateNotesRequest {
   notes: string;
 }
 
-// ─── Search Params ────────────────────────────────────────────────────────────
-
 export interface ResourceSearchParams {
   zipCode: string;
   category?: ResourceCategory | "";
   keyword?: string;
   radius?: number;
 }
-
-// ─── API Error ────────────────────────────────────────────────────────────────
 
 export interface ApiError {
   status: number;

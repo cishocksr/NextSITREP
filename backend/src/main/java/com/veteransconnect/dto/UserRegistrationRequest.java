@@ -22,9 +22,6 @@ public record UserRegistrationRequest(
     @Pattern(regexp = "\\d{5}", message = "Zip code must be exactly 5 digits")
     String zipCode,
 
-    // Password is collected at registration and immediately BCrypt-hashed.
-    // We enforce a minimum length of 8 characters here so weak passwords
-    // are rejected before they ever reach the service layer.
     @NotBlank(message = "Password is required")
     @Size(min = 8, message = "Password must be at least 8 characters")
     String password

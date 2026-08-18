@@ -8,10 +8,6 @@ import java.util.UUID;
 
 /**
  * Response DTO for a saved resource in the veteran's personal library.
- *
- * Includes all stored resource data plus the veteran's notes and timestamps.
- * The static `from()` factory keeps mapping logic centralized here rather
- * than scattered across service/controller code.
  */
 public record SavedResourceResponse(
 
@@ -27,17 +23,11 @@ public record SavedResourceResponse(
         String city,
         String state,
         String zipCode,
-
-        // The veteran's personal notes — plain text, markdown supported
         String notes,
-
         LocalDateTime savedAt,
         LocalDateTime updatedAt
 
 ) {
-    /**
-     * Build a SavedResourceResponse from a SavedResource entity.
-     */
     public static SavedResourceResponse from(SavedResource savedResource) {
         return new SavedResourceResponse(
                 savedResource.getId(),
