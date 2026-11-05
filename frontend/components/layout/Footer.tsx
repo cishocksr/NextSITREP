@@ -12,7 +12,7 @@ export function Footer() {
       <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-6 text-sm text-slate-500 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="font-semibold text-slate-800">VeteransConnect</p>
+            <p className="font-semibold text-slate-800">Veteran FOB</p>
             <p className="mt-1 max-w-2xl leading-6">
               Resource data is informational and should be verified directly
               with official providers before making benefits, healthcare,

@@ -26,7 +26,7 @@ describe("Navbar", () => {
     render(<Navbar />);
 
     expect(
-      screen.getByRole("link", { name: /veteransconnect/i }),
+      screen.getByRole("link", { name: /veteran fob/i }),
     ).toHaveAttribute("href", "/");
     expect(screen.getByRole("link", { name: /sign in/i })).toHaveAttribute(
       "href",
@@ -59,7 +59,7 @@ describe("Navbar", () => {
     render(<Navbar />);
 
     expect(
-      screen.getByRole("link", { name: /veteransconnect/i }),
+      screen.getByRole("link", { name: /veteran fob/i }),
     ).toHaveAttribute("href", "/dashboard");
     for (const savedLink of screen.getAllByRole("link", { name: "Saved" })) {
       expect(savedLink).toHaveClass("bg-blue-50", "text-blue-700");

@@ -47,7 +47,7 @@ export default function LandingPage() {
             You
           </h1>
           <p className="mx-auto max-w-2xl text-lg sm:text-xl text-slate-300 mb-10">
-            VeteransConnect helps you quickly discover healthcare, benefits,
+            Veteran FOB helps you quickly discover healthcare, benefits,
             education, and housing resources from the VA and other trusted
             providers, all in one place.
           </p>

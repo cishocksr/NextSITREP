@@ -29,7 +29,7 @@ export function Navbar() {
               🇺🇸
             </span>
             <span className="text-lg font-bold text-slate-900 tracking-tight">
-              Veterans<span className="text-blue-600">Connect</span>
+              Veteran <span className="text-blue-600">FOB</span>
             </span>
           </Link>
 

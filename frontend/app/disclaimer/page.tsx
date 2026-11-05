@@ -5,15 +5,15 @@ export default function DisclaimerPage() {
     <LegalPage
       title="Disclaimer"
       lastUpdated="June 7, 2026"
-      intro="VeteransConnect is an informational platform designed to help users discover veterans-related resources. It is not a substitute for official guidance or professional advice."
+      intro="Veteran FOB is an informational platform designed to help users discover veterans-related resources. It is not a substitute for official guidance or professional advice."
       sections={[
         {
           title: "Not an Official Government Service",
-          body: "VeteransConnect is not operated by, endorsed by, sponsored by, or officially affiliated with the U.S. Department of Veterans Affairs, the federal government, state governments, or veterans service organizations unless explicitly stated.",
+          body: "Veteran FOB is not operated by, endorsed by, sponsored by, or officially affiliated with the U.S. Department of Veterans Affairs, the federal government, state governments, or veterans service organizations unless explicitly stated.",
         },
         {
           title: "Not Professional Advice",
-          body: "Information provided through VeteransConnect is for informational purposes only and should not be considered medical, legal, financial, benefits, counseling, or case management advice.",
+          body: "Information provided through Veteran FOB is for informational purposes only and should not be considered medical, legal, financial, benefits, counseling, or case management advice.",
         },
         {
           title: "Verify Information Independently",
@@ -32,7 +32,7 @@ export default function DisclaimerPage() {
         },
         {
           title: "Emergency Warning",
-          body: "VeteransConnect is not an emergency service. If you are experiencing an emergency, call 911 immediately. For veteran crisis support, call 988 and press 1, text 838255, or contact the Veterans Crisis Line.",
+          body: "Veteran FOB is not an emergency service. If you are experiencing an emergency, call 911 immediately. For veteran crisis support, call 988 and press 1, text 838255, or contact the Veterans Crisis Line.",
         },
       ]}
     />

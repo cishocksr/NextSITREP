@@ -53,7 +53,8 @@ services:
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      # This Compose file is local scaffolding, not an AWS deployment definition.
+      SPRING_PROFILES_ACTIVE: local
       # Database
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
@@ -93,14 +94,10 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL:-http://localhost:${BACKEND_PORT:-8080}}
     container_name: vet-connect-frontend
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
-    environment:
-      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:${BACKEND_PORT:-8080}}
     depends_on:
       backend:
         condition: service_healthy

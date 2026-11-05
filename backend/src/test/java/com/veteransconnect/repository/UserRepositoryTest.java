@@ -5,6 +5,7 @@ import com.veteransconnect.model.enums.BranchOfService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 
@@ -16,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
 @DisplayName("User Repository Tests")
+@ActiveProfiles("test")
 class UserRepositoryTest {
 
     private static final String VALID_EMAIL = "veteran@example.com";

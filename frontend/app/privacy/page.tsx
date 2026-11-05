@@ -5,11 +5,11 @@ export default function PrivacyPage() {
     <LegalPage
       title="Privacy Policy"
       lastUpdated="June 7, 2026"
-      intro="This Privacy Policy explains what information VeteransConnect may collect, how that information is used, and how users can request access, correction, or deletion of their data."
+      intro="This Privacy Policy explains what information Veteran FOB may collect, how that information is used, and how users can request access, correction, or deletion of their data."
       sections={[
         {
           title: "Information We Collect",
-          body: "VeteransConnect may collect information you provide directly, along with limited technical and usage information needed to operate and improve the app.",
+          body: "Veteran FOB may collect information you provide directly, along with limited technical and usage information needed to operate and improve the app.",
           items: [
             "Account information such as name, email address, username, and profile details",
             "Saved resources, bookmarks, notes, preferences, and app settings",
@@ -20,7 +20,7 @@ export default function PrivacyPage() {
         {
           title: "How We Use Information",
           items: [
-            "To provide and improve VeteransConnect services",
+            "To provide and improve Veteran FOB services",
             "To personalize saved resources and app features",
             "To maintain account security and prevent misuse",
             "To respond to support requests",
@@ -34,7 +34,7 @@ export default function PrivacyPage() {
         },
         {
           title: "Saved Resources and Notes",
-          body: "VeteransConnect may store saved resources, bookmarks, and notes associated with your account. Users should avoid storing sensitive information such as Social Security numbers, medical records, financial account details, or government identification numbers.",
+          body: "Veteran FOB may store saved resources, bookmarks, and notes associated with your account. Users should avoid storing sensitive information such as Social Security numbers, medical records, financial account details, or government identification numbers.",
         },
         {
           title: "Cookies and Local Storage",
@@ -42,7 +42,7 @@ export default function PrivacyPage() {
         },
         {
           title: "Third-Party Services and APIs",
-          body: "VeteransConnect may rely on third-party providers, APIs, analytics tools, mapping services, or authentication services. Information shared with third parties is limited to what is necessary to provide app functionality.",
+          body: "Veteran FOB may rely on third-party providers, APIs, analytics tools, mapping services, or authentication services. Information shared with third parties is limited to what is necessary to provide app functionality.",
         },
         {
           title: "Data Retention and Deletion Requests",
@@ -54,7 +54,7 @@ export default function PrivacyPage() {
         },
         {
           title: "Changes to This Policy",
-          body: "We may update this Privacy Policy periodically. Continued use of VeteransConnect after updates means you accept the revised policy.",
+          body: "We may update this Privacy Policy periodically. Continued use of Veteran FOB after updates means you accept the revised policy.",
         },
       ]}
     />

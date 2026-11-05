@@ -21,7 +21,7 @@ export default function LegalPage({
     <div className="mx-auto max-w-4xl px-6 py-12">
       <header className="mb-10 border-b border-slate-200 pb-6">
         <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">
-          VeteransConnect
+          Veteran FOB
         </p>
 
         <h1 className="mt-2 text-4xl font-bold text-slate-900">{title}</h1>

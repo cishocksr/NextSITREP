@@ -9,8 +9,7 @@ import type {
   UserRegistrationRequest,
 } from "./types";
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+// Browser requests always use the app origin. Next/ingress forwards /api to Spring.
 
 const CSRF_COOKIE_NAME = "XSRF-TOKEN";
 const CSRF_HEADER_NAME = "X-XSRF-TOKEN";
@@ -40,12 +39,22 @@ function readCookie(name: string): string | null {
   return decodeURIComponent(cookie.slice(name.length + 1));
 }
 
-async function getCsrfToken(): Promise<string | null> {
-  await fetch(`${BASE_URL}/api/v1/auth/csrf`, {
+async function getCsrfToken(): Promise<string> {
+  const response = await fetch("/api/v1/auth/csrf", {
     credentials: "include",
+    cache: "no-store",
   });
+  if (!response.ok) {
+    throw new Error("Unable to initialize request security. Please try again.");
+  }
 
-  return readCookie(CSRF_COOKIE_NAME);
+  const token = readCookie(CSRF_COOKIE_NAME);
+  if (!token) {
+    throw new Error(
+      "Request security cookie is unavailable. Please allow cookies and try again.",
+    );
+  }
+  return token;
 }
 
 async function request<T>(
@@ -60,13 +69,10 @@ async function request<T>(
   };
 
   if (isUnsafeMethod(fetchOptions.method)) {
-    const csrfToken = await getCsrfToken();
-    if (csrfToken) {
-      headers[CSRF_HEADER_NAME] = csrfToken;
-    }
+    headers[CSRF_HEADER_NAME] = await getCsrfToken();
   }
 
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(path, {
     ...fetchOptions,
     credentials: "include",
     headers,

@@ -25,24 +25,17 @@ public class AuthRateLimiter {
     private final Clock clock;
     private final int maxAttempts;
     private final long windowMs;
-    private final boolean trustForwardedHeaders;
 
     @Autowired
     public AuthRateLimiter(
             @Value("${security.auth-rate-limit.max-attempts:10}") int maxAttempts,
-            @Value("${security.auth-rate-limit.window-ms:900000}") long windowMs,
-            @Value("${security.auth-rate-limit.trust-forwarded-headers:false}") boolean trustForwardedHeaders) {
-        this(maxAttempts, windowMs, trustForwardedHeaders, Clock.systemUTC());
+            @Value("${security.auth-rate-limit.window-ms:900000}") long windowMs) {
+        this(maxAttempts, windowMs, Clock.systemUTC());
     }
 
     AuthRateLimiter(int maxAttempts, long windowMs, Clock clock) {
-        this(maxAttempts, windowMs, false, clock);
-    }
-
-    AuthRateLimiter(int maxAttempts, long windowMs, boolean trustForwardedHeaders, Clock clock) {
         this.maxAttempts = maxAttempts;
         this.windowMs = windowMs;
-        this.trustForwardedHeaders = trustForwardedHeaders;
         this.clock = clock;
     }
 
@@ -73,10 +66,7 @@ public class AuthRateLimiter {
     }
 
     private String clientIp(HttpServletRequest request) {
-        String forwardedFor = request.getHeader("X-Forwarded-For");
-        if (trustForwardedHeaders && forwardedFor != null && !forwardedFor.isBlank()) {
-            return forwardedFor.split(",")[0].trim();
-        }
+        // Only the guarded Tomcat valve may normalize the socket peer to a client IP.
         return request.getRemoteAddr();
     }
 }

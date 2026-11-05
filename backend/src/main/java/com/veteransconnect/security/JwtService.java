@@ -2,13 +2,14 @@ package com.veteransconnect.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.security.MessageDigest;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -20,11 +21,20 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    @Value("${jwt.secret}")
-    private String secretKey;
+    // Publicly known legacy fallback; never accept it as an explicitly supplied key.
+    private static final byte[] LEGACY_DEFAULT_KEY = Base64.getDecoder().decode(
+            "VmV0ZXJhbnNDb25uZWN0U2VjcmV0S2V5Rm9yVmV0ZXJhbnNDb25uZWN0MjAyNg=="
+    );
 
-    @Value("${jwt.expiration}")
-    private long jwtExpiration;
+    private final SecretKey signingKey;
+    private final long jwtExpiration;
+
+    public JwtService(
+            @Value("${jwt.secret:}") String secretKey,
+            @Value("${jwt.expiration}") long jwtExpiration) {
+        this.signingKey = validateSigningKey(secretKey);
+        this.jwtExpiration = jwtExpiration;
+    }
 
     public String generateToken(UserDetails userDetails) {
         return generateToken(new HashMap<>(), userDetails);
@@ -36,7 +46,7 @@ public class JwtService {
                 .subject(userDetails.getUsername())
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
-                .signWith(getSigningKey())
+                .signWith(signingKey)
                 .compact();
     }
 
@@ -60,7 +70,7 @@ public class JwtService {
 
     private Claims extractAllClaims(String token) {
         return Jwts.parser()
-                .verifyWith(getSigningKey())
+                .verifyWith(signingKey)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
@@ -74,8 +84,26 @@ public class JwtService {
         return extractClaim(token, Claims::getExpiration);
     }
 
-    private SecretKey getSigningKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+    /** Reused by startup preflight before database or web-server initialization. */
+    public static SecretKey validateSigningKey(String secretKey) {
+        if (secretKey == null || secretKey.isBlank()) {
+            throw new IllegalArgumentException("JWT_SECRET is required; no default signing key is allowed");
+        }
+
+        final byte[] keyBytes;
+        try {
+            keyBytes = Base64.getDecoder().decode(secretKey);
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("JWT_SECRET must be valid Base64", ex);
+        }
+
+        if (MessageDigest.isEqual(keyBytes, LEGACY_DEFAULT_KEY)) {
+            throw new IllegalArgumentException("JWT_SECRET must not use the publicly known legacy signing key");
+        }
+        if (keyBytes.length < 32) {
+            throw new IllegalArgumentException("JWT_SECRET must decode to at least 32 bytes (256 bits)");
+        }
+
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }

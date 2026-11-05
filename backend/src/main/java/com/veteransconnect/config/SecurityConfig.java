@@ -19,6 +19,9 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.security.web.header.writers.StaticHeadersWriter;
+import org.springframework.security.web.header.HeaderWriterFilter;
+import com.veteransconnect.security.HttpsRequirementFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
@@ -44,14 +47,26 @@ public class SecurityConfig {
     @Value("${cors.allowed-origins}")
     private String[] allowedOrigins;
 
+    @Value("${security.jwt.cookie-secure}")
+    private boolean secureCookies;
+
+    @Value("${security.https.required:false}")
+    private boolean httpsRequired;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         CsrfTokenRequestAttributeHandler csrfRequestHandler = new CsrfTokenRequestAttributeHandler();
         csrfRequestHandler.setCsrfRequestAttributeName(null);
 
+        CookieCsrfTokenRepository csrfRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        if (secureCookies) {
+            // HTTPS may terminate before Spring; do not rely on the internal request scheme.
+            csrfRepository.setCookieCustomizer(cookie -> cookie.secure(true));
+        }
+
         http
             .csrf(csrf -> csrf
-                    .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                    .csrfTokenRepository(csrfRepository)
                     .csrfTokenRequestHandler(csrfRequestHandler)
             )
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -86,18 +101,23 @@ public class SecurityConfig {
             )
             .authenticationProvider(authenticationProvider())
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(new HttpsRequirementFilter(httpsRequired), HeaderWriterFilter.class)
             .headers(headers -> headers
                 .contentSecurityPolicy(csp -> csp.policyDirectives(
-                        "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+                        "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
                 ))
                 .frameOptions(frameOptions -> frameOptions.deny())
                 .referrerPolicy(referrer -> referrer.policy(
                         ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER
                 ))
                 .httpStrictTransportSecurity(hsts -> hsts
-                        .includeSubDomains(true)
+                        .requestMatcher(request -> httpsRequired && request.isSecure())
+                        .includeSubDomains(false)
+                        .preload(false)
                         .maxAgeInSeconds(31536000)
                 )
+                .addHeaderWriter(new StaticHeadersWriter(
+                        "Permissions-Policy", "camera=(), microphone=(), geolocation=()"))
                 .cacheControl(cache -> {})
             );
 

@@ -2,8 +2,9 @@ FROM oven/bun:1 AS build
 
 WORKDIR /app
 
-ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
-ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+# Next rewrites capture this server-only origin during the build.
+ARG API_PROXY_TARGET=http://backend:8080
+ENV API_PROXY_TARGET=$API_PROXY_TARGET
 
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
