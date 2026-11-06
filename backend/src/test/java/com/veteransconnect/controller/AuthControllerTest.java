@@ -1,6 +1,6 @@
 package com.veteransconnect.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.veteransconnect.dto.AuthResponse;
 import com.veteransconnect.dto.UserResponse;
 import com.veteransconnect.dto.LoginRequest;
@@ -16,8 +16,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.security.autoconfigure.web.servlet.ServletWebSecurityAutoConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -45,12 +45,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Unit tests for AuthController.
  *
  * Tests the register and login endpoints in isolation from real authentication.
- * Security is excluded via SecurityAutoConfiguration so we test controller
+ * Security is excluded via ServletWebSecurityAutoConfiguration so we test controller
  * logic without needing valid JWTs in the test requests.
  */
 @WebMvcTest(
         controllers = AuthController.class,
-        excludeAutoConfiguration = SecurityAutoConfiguration.class
+        excludeAutoConfiguration = ServletWebSecurityAutoConfiguration.class
 )
 @DisplayName("Auth Controller Tests")
 @ActiveProfiles("test")
