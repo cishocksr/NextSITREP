@@ -6,18 +6,21 @@ import com.veteransconnect.security.JwtAuthenticationFilter;
 import com.veteransconnect.security.JwtService;
 import com.veteransconnect.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.actuate.autoconfigure.health.HealthEndpointAutoConfiguration;
-import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
-import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
+import org.springframework.boot.health.autoconfigure.actuate.endpoint.HealthEndpointAutoConfiguration;
+import org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration;
+import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
+import org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext;
+import org.springframework.boot.web.server.servlet.context.ServletWebServerApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.env.MapPropertySource;
@@ -26,6 +29,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -56,10 +61,37 @@ class TrustedProxyIntegrationTest {
     @RestController
     static class Probe {
         @GetMapping("/actuator/health")
-        Map<String, Object> health(HttpServletRequest request) {
+        Map<String, Object> health(HttpServletRequest request, HttpServletResponse response) throws IOException {
+            String headerMethod = request.getParameter("contentLengthMethod");
+            if (headerMethod != null) {
+                byte[] body = "{}".getBytes(StandardCharsets.UTF_8);
+                response.setContentType("application/json");
+                switch (headerMethod) {
+                    case "setHeader" -> response.setHeader("Content-Length", Integer.toString(body.length));
+                    case "setIntHeader" -> response.setIntHeader("Content-Length", body.length);
+                    case "addHeader" -> response.addHeader("Content-Length", Integer.toString(body.length));
+                    default -> throw new IllegalArgumentException("Unsupported test header method");
+                }
+                response.getOutputStream().write(body);
+                response.flushBuffer();
+                return null;
+            }
             return Map.of("secure", request.isSecure(), "scheme", request.getScheme(),
                     "client", request.getRemoteAddr(), "host", request.getServerName());
         }
+    }
+
+    /** CVE-2026-22732: generic Content-Length setters must not commit before headers. */
+    @ParameterizedTest
+    @ValueSource(strings = {"setHeader", "setIntHeader", "addHeader"})
+    void securityHeadersSurviveExplicitContentLengthCommit(String headerMethod) throws Exception {
+        HttpResponse<String> response = send(request(trusted,
+                "/actuator/health?contentLengthMethod=" + headerMethod)
+                .header("X-Forwarded-Proto", "https"));
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body()).isEqualTo("{}");
+        assertThat(response.headers().firstValue("Content-Length")).contains("2");
+        assertSecurityHeaders(response);
     }
 
     private static ServletWebServerApplicationContext start(String trustedIps) {

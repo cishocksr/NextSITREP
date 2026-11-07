@@ -11,8 +11,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.security.autoconfigure.web.servlet.ServletWebSecurityAutoConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -31,13 +31,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Registration has moved to AuthController (/api/v1/auth/register).
  * See AuthControllerTest for registration endpoint tests.
  *
- * SecurityAutoConfiguration is excluded so tests run without a real JWT filter.
+ * ServletWebSecurityAutoConfiguration is excluded so tests run without a real JWT filter.
  * The SecurityConfiguration @TestConfiguration (in this package) provides a
  * permissive filter chain that allows all requests through.
  */
 @WebMvcTest(
         controllers = UserController.class,
-        excludeAutoConfiguration = SecurityAutoConfiguration.class
+        excludeAutoConfiguration = ServletWebSecurityAutoConfiguration.class
 )
 @DisplayName("User Controller Tests")
 @ActiveProfiles("test")

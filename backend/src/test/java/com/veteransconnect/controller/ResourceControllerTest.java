@@ -1,6 +1,6 @@
 package com.veteransconnect.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.veteransconnect.dto.ResourceSearchResult;
 import com.veteransconnect.dto.SaveResourceRequest;
 import com.veteransconnect.dto.SavedResourceResponse;
@@ -17,8 +17,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.security.autoconfigure.web.servlet.ServletWebSecurityAutoConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -39,11 +39,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Unit tests for ResourceController.
  *
  * @WithMockUser simulates an authenticated veteran with email "veteran@example.com".
- * The SecurityAutoConfiguration is excluded so we don't need a real JWT filter.
+ * The ServletWebSecurityAutoConfiguration is excluded so we don't need a real JWT filter.
  */
 @WebMvcTest(
         controllers = ResourceController.class,
-        excludeAutoConfiguration = SecurityAutoConfiguration.class
+        excludeAutoConfiguration = ServletWebSecurityAutoConfiguration.class
 )
 @DisplayName("Resource Controller Tests")
 @ActiveProfiles("test")
