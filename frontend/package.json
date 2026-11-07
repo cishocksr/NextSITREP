@@ -12,6 +12,7 @@
     "format:check": "biome format ",
     "test": "vitest",
     "test:run": "vitest run",
+    "test:security:http": "node --test test/security-http.integration.mjs",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
