@@ -47,9 +47,11 @@ export function proxy(request: NextRequest) {
   const policy = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${development ? " 'unsafe-eval'" : ""}`,
-    `style-src 'self' 'nonce-${nonce}'`,
-    // Next's built-in error/404 components emit style attributes. Keep this
-    // exception scoped to attributes; script and style elements still need nonces.
+    // Next 16.4.5's built-in error UI emits this fixed, unnonced style block.
+    // Authorize only its exact bytes; the live regression test detects changes.
+    `style-src 'self' 'nonce-${nonce}' 'sha256-Z5XTK23DFuEMs0PwnyZDO9SWxemQ5HxcpVaBNuUJyWY='`,
+    // Next's built-in error UI also emits style attributes. Preserve the existing
+    // attribute-only exception; style elements require a nonce or exact hash.
     "style-src-attr 'unsafe-inline'",
     "img-src 'self' data:",
     "font-src 'self'",
@@ -74,5 +76,6 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // Exclude real asset namespaces/endpoints, never similarly prefixed pages.
+  matcher: ["/((?!_next/static/|_next/image$|favicon\\.ico$).*)"],
 };

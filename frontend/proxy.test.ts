@@ -1,6 +1,11 @@
+import { createHash } from "node:crypto";
+import { HTTPAccessErrorFallback } from "next/dist/client/components/http-access-fallback/error-fallback";
+import { unstable_doesMiddlewareMatch } from "next/experimental/testing/server";
 import { NextRequest } from "next/server";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { proxy } from "./proxy";
+import { config, proxy } from "./proxy";
 
 afterEach(() => vi.unstubAllEnvs());
 
@@ -96,6 +101,9 @@ describe("API forwarding boundary", () => {
             "X-Forwarded-Host": "evil.test",
             "X-Forwarded-Port": "9999",
             "X-Real-IP": "203.0.113.9",
+            Origin: "https://app.example.test",
+            "x-nonce": "caller-selected-nonce",
+            "Content-Security-Policy": "default-src *",
             Cookie: "XSRF-TOKEN=synthetic",
             "X-XSRF-TOKEN": "synthetic",
           },
@@ -115,6 +123,13 @@ describe("API forwarding boundary", () => {
           response.headers.get(`x-middleware-request-${header}`),
         ).toBeNull();
       }
+      expect(response.headers.get("x-middleware-request-origin")).toBe(
+        "https://app.example.test",
+      );
+      expect(response.headers.get("x-middleware-request-x-nonce")).toBeNull();
+      expect(
+        response.headers.get("x-middleware-request-content-security-policy"),
+      ).toBeNull();
       expect(response.headers.get("x-middleware-request-cookie")).toBe(
         "XSRF-TOKEN=synthetic",
       );
@@ -126,4 +141,69 @@ describe("API forwarding boundary", () => {
       );
     },
   );
+});
+
+describe("security policy route coverage", () => {
+  it.each([
+    "/",
+    "/login",
+    "/missing-page",
+    "/favicon.ico-extra",
+    "/favicon.ico/not-an-icon",
+    "/faviconXico",
+    "/favicon%2eico-extra",
+    "/_next/image-extra",
+    "/_next/image/not-an-image",
+    "/_next/static",
+    "/_next/static-extra",
+    "/api/v1/auth/csrf",
+  ])("applies the policy to %s", (url) => {
+    expect(unstable_doesMiddlewareMatch({ config, nextConfig: {}, url })).toBe(
+      true,
+    );
+    const response = proxy(new NextRequest(`https://app.example.test${url}`));
+    expect(response.headers.get("Content-Security-Policy")).toBeTruthy();
+  });
+
+  it.each([
+    "/favicon.ico",
+    "/favicon.ico?v=1",
+    "/_next/image?url=%2Ficon.png&w=64&q=75",
+    "/_next/static/chunks/app.js",
+    "/_next/static/css/app.css",
+  ])("preserves the actual asset endpoint exclusion for %s", (url) => {
+    expect(unstable_doesMiddlewareMatch({ config, nextConfig: {}, url })).toBe(
+      false,
+    );
+  });
+
+  it("authorizes only the pinned framework error stylesheet, without broad inline styles", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const response = proxy(new NextRequest("https://app.example.test/missing"));
+    const policy = response.headers.get("Content-Security-Policy") ?? "";
+    const stylePolicy =
+      policy.split(";").find((part) => part.trim().startsWith("style-src ")) ??
+      "";
+    const markup = renderToStaticMarkup(
+      createElement(HTTPAccessErrorFallback, {
+        status: 404,
+        message: "This page could not be found.",
+      }),
+    );
+    const document = new DOMParser().parseFromString(markup, "text/html");
+    const styles = document.querySelectorAll("style");
+    expect(styles).toHaveLength(1);
+    for (const style of styles) {
+      const hash = createHash("sha256")
+        .update(style.textContent ?? "")
+        .digest("base64");
+      expect(stylePolicy).toContain(`'sha256-${hash}'`);
+    }
+    const otherHash = createHash("sha256")
+      .update("body { display: none }")
+      .digest("base64");
+    expect(stylePolicy).not.toContain(otherHash);
+    expect(stylePolicy).not.toContain("unsafe-inline");
+    expect(policy).not.toContain("unsafe-eval");
+  });
 });
