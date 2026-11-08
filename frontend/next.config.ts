@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   async rewrites() {
     // Server-only destination, captured at build time. Keep browser URLs relative.
     const upstream = new URL(
