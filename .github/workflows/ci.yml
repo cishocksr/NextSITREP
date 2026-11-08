@@ -171,12 +171,19 @@ jobs:
         timeout-minutes: 3
         run: bun run test:security:http
 
+  # Runs on every CI PR/push, so required checks never disappear due to path filters.
+  dependency-security:
+    name: Dependency Security
+    permissions:
+      contents: read
+    uses: ./.github/workflows/dependency-check.yml
+
   # Code Quality Overview Job
   quality-gate:
     name: Quality Gate
     permissions: {}
     runs-on: ubuntu-latest
-    needs: [backend, frontend]
+    needs: [backend, frontend, dependency-security]
     if: always()
 
     steps:
@@ -184,8 +191,9 @@ jobs:
         run: |
           echo "Backend Status: ${{ needs.backend.result }}"
           echo "Frontend Status: ${{ needs.frontend.result }}"
+          echo "Dependency Security Status: ${{ needs.dependency-security.result }}"
 
-          if [[ "${{ needs.backend.result }}" != "success" ]] || [[ "${{ needs.frontend.result }}" != "success" ]]; then
+          if [[ "${{ needs.backend.result }}" != "success" ]] || [[ "${{ needs.frontend.result }}" != "success" ]] || [[ "${{ needs.dependency-security.result }}" != "success" ]]; then
             echo "❌ Quality gate failed"
             exit 1
           else
