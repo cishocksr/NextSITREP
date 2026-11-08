@@ -1,0 +1,9 @@
+blank_issues_enabled: true
+contact_links:
+
+- name: 📚 Curriculum Reference
+  url: https://github.com/cishocksr/veterans-connect/tree/main/docs
+  about: View project documentation and learning notes
+- name: 💬 Discussion Forum
+  url: https://github.com/cishocksr/veterans-connect/discussions
+  about: Ask questions or discuss ideas with the community

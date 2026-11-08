@@ -29,13 +29,4 @@ logs/
 *.db
 
 # AI-generated docs and drafts
-TODO.md
-/docs
-README_NEW.md
-frontend/README.md
-frontend/ISSUE.MD
-frontend/PULLREQUEST.MD
-*.ai.md
-*.AI.md
-*.ai-generated.md
-frontend_react
+
