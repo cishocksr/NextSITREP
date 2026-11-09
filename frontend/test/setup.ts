@@ -68,3 +68,22 @@ afterEach(() => {
   vi.clearAllMocks();
   (globalThis as GlobalWithNavigationMock).nextNavigationMock.reset();
 });
+
+// Pointer coordinates are needed for backdrop gestures; jsdom has no PointerEvent.
+if (!window.PointerEvent)
+  window.PointerEvent = MouseEvent as typeof PointerEvent;
+
+Object.defineProperties(HTMLDialogElement.prototype, {
+  showModal: {
+    configurable: true,
+    value() {
+      this.setAttribute("open", "");
+    },
+  },
+  close: {
+    configurable: true,
+    value() {
+      this.removeAttribute("open");
+    },
+  },
+});

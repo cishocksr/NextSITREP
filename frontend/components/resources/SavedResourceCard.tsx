@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -25,6 +25,7 @@ export function SavedResourceCard({
   const [showNotes, setShowNotes] = useState(false);
   const [showFullNotes, setShowFullNotes] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const notesId = useId();
   const mounted = useRef(true);
   const removing = useRef(false);
   useEffect(() => {
@@ -74,14 +75,17 @@ export function SavedResourceCard({
 
   return (
     <>
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col gap-3 hover:shadow-md transition-shadow">
+      <div
+        data-resource-id={resource.id}
+        className="min-w-0 break-words bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col gap-3 hover:shadow-md transition-shadow"
+      >
         {/* Header */}
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-slate-900 leading-snug line-clamp-2">
+            <h3 className="font-semibold text-slate-900 leading-snug break-words">
               {resource.name}
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-600 mt-0.5">
               Saved {new Date(resource.savedAt).toLocaleDateString()}
             </p>
           </div>
@@ -92,7 +96,7 @@ export function SavedResourceCard({
 
         {/* Description */}
         {resource.description && (
-          <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed">
+          <p className="text-sm text-slate-600 break-words leading-relaxed">
             {resource.description}
           </p>
         )}
@@ -101,7 +105,7 @@ export function SavedResourceCard({
         <div className="flex flex-col gap-1.5 text-sm text-slate-600">
           {addressLine && (
             <div className="flex items-start gap-2">
-              <span className="shrink-0 text-slate-400" aria-hidden>
+              <span className="shrink-0 text-slate-600" aria-hidden>
                 📍
               </span>
               <span>{addressLine}</span>
@@ -109,11 +113,12 @@ export function SavedResourceCard({
           )}
           {resource.phone && (
             <div className="flex items-center gap-2">
-              <span className="shrink-0 text-slate-400" aria-hidden>
+              <span className="shrink-0 text-slate-600" aria-hidden>
                 📞
               </span>
               <a
                 href={`tel:${resource.phone}`}
+                aria-label={`Call ${resource.name} at ${resource.phone}`}
                 className="text-blue-600 hover:underline"
               >
                 {resource.phone}
@@ -122,14 +127,15 @@ export function SavedResourceCard({
           )}
           {website && (
             <div className="flex items-center gap-2">
-              <span className="shrink-0 text-slate-400" aria-hidden>
+              <span className="shrink-0 text-slate-600" aria-hidden>
                 🌐
               </span>
               <a
                 href={website}
+                aria-label={`Visit website for ${resource.name} (opens in a new tab)`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:underline truncate"
+                className="text-blue-600 hover:underline break-words"
               >
                 Visit website
               </a>
@@ -145,14 +151,20 @@ export function SavedResourceCard({
                 📝 Your notes
               </span>
             </div>
-            <p className="text-xs text-amber-800 whitespace-pre-wrap leading-relaxed font-mono">
+            <p
+              id={notesId}
+              className="text-xs text-amber-800 whitespace-pre-wrap leading-relaxed font-mono"
+            >
               {showFullNotes ? resource.notes : notesPreview}
               {notesTruncated && !showFullNotes && "…"}
             </p>
             {notesTruncated && (
               <button
                 type="button"
-                className="text-xs text-amber-600 hover:text-amber-700 mt-1 font-medium"
+                className="min-h-11 rounded-lg text-xs text-amber-800 hover:text-amber-900 mt-1 font-medium focus-visible:outline-2 focus-visible:outline-amber-800"
+                aria-expanded={showFullNotes}
+                aria-controls={notesId}
+                aria-label={`${showFullNotes ? "Show less" : "Show more"} notes for ${resource.name}`}
                 onClick={() => setShowFullNotes(!showFullNotes)}
               >
                 {showFullNotes ? "Show less" : "Show more"}
@@ -174,6 +186,7 @@ export function SavedResourceCard({
             variant="secondary"
             size="sm"
             disabled={isRemoving}
+            aria-label={`${hasNotes ? "Edit Notes" : "Add Notes"}: ${resource.name}`}
             onClick={() => setShowNotes(true)}
             className="flex-1"
           >
@@ -184,6 +197,7 @@ export function SavedResourceCard({
             size="sm"
             isLoading={isRemoving}
             disabled={showNotes}
+            aria-label={`Remove: ${resource.name}`}
             onClick={handleRemove}
           >
             Remove

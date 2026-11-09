@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -19,7 +19,12 @@ const branchOptions = (Object.keys(BRANCH_LABELS) as BranchOfService[]).map(
 
 export function RegisterForm() {
   const { register } = useAuth();
+  const legalErrorId = useId();
   const [error, setError] = useState<string | null>(null);
+  const [fieldError, setFieldError] = useState<{
+    field: string;
+    message: string;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const [form, setForm] = useState({
@@ -37,27 +42,37 @@ export function RegisterForm() {
     field: K,
     value: (typeof form)[K],
   ) {
+    if (fieldError?.field === field) setFieldError(null);
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    setFieldError(null);
+    const formElement = e.currentTarget;
+    function invalid(field: string, message: string) {
+      setFieldError({ field, message });
+      formElement.querySelector<HTMLElement>(`[name="${field}"]`)?.focus();
+    }
 
     if (!form.branchOfService) {
-      setError("Please select your branch of service.");
+      invalid("branchOfService", "Please select your branch of service.");
       return;
     }
     if (form.password !== form.confirmPassword) {
-      setError("Passwords do not match.");
+      invalid("confirmPassword", "Passwords do not match.");
       return;
     }
     if (form.password.length < 8) {
-      setError("Password must be at least 8 characters.");
+      invalid("password", "Password must be at least 8 characters.");
       return;
     }
     if (!form.acceptsLegal) {
-      setError("Please agree to the Terms and Privacy Policy to continue.");
+      invalid(
+        "acceptsLegal",
+        "Please agree to the Terms and Privacy Policy to continue.",
+      );
       return;
     }
 
@@ -124,6 +139,12 @@ export function RegisterForm() {
       <div className="grid gap-4 sm:grid-cols-2">
         <Select
           label="Branch of service"
+          name="branchOfService"
+          error={
+            fieldError?.field === "branchOfService"
+              ? fieldError.message
+              : undefined
+          }
           required
           options={branchOptions}
           placeholder="Select branch"
@@ -146,6 +167,10 @@ export function RegisterForm() {
 
       <Input
         label="Password"
+        name="password"
+        error={
+          fieldError?.field === "password" ? fieldError.message : undefined
+        }
         type="password"
         autoComplete="new-password"
         required
@@ -157,6 +182,12 @@ export function RegisterForm() {
 
       <Input
         label="Confirm password"
+        name="confirmPassword"
+        error={
+          fieldError?.field === "confirmPassword"
+            ? fieldError.message
+            : undefined
+        }
         type="password"
         autoComplete="new-password"
         required
@@ -168,6 +199,12 @@ export function RegisterForm() {
       <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
         <input
           type="checkbox"
+          name="acceptsLegal"
+          aria-invalid={fieldError?.field === "acceptsLegal" || undefined}
+          aria-describedby={
+            fieldError?.field === "acceptsLegal" ? legalErrorId : undefined
+          }
+          required
           checked={form.acceptsLegal}
           onChange={(e) => update("acceptsLegal", e.target.checked)}
           className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
@@ -197,18 +234,22 @@ export function RegisterForm() {
           .
         </span>
       </label>
+      {fieldError?.field === "acceptsLegal" && (
+        <p id={legalErrorId} className="text-xs text-red-700">
+          {fieldError.message}
+        </p>
+      )}
 
       <Button
         type="submit"
         size="lg"
         isLoading={isLoading}
-        disabled={!form.acceptsLegal}
         className="w-full mt-1"
       >
         Create Account
       </Button>
 
-      <p className="text-center text-sm text-slate-500">
+      <p className="text-center text-sm text-slate-600">
         Already have an account?{" "}
         <Link
           href="/login"

@@ -112,7 +112,7 @@ function ResourcesContent() {
       {/* Page header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">Find Resources</h1>
-        <p className="text-slate-500 mt-1">
+        <p className="text-slate-600 mt-1">
           Search VA facilities and services near you
         </p>
       </div>
@@ -130,9 +130,19 @@ function ResourcesContent() {
         />
       </div>
 
+      <output className="sr-only" aria-live="polite" aria-atomic="true">
+        {isLoading
+          ? "Searching for resources."
+          : results !== null && snapshot
+            ? `${results.length} resources found near ${snapshot.params.zipCode}.`
+            : ""}
+      </output>
       {/* Results */}
       {isLoading && (
-        <LoadingSpinner message="Searching for resources near you..." />
+        <LoadingSpinner
+          announce={false}
+          message="Searching for resources near you..."
+        />
       )}
 
       {error && !isLoading && (
@@ -164,7 +174,7 @@ function ResourcesContent() {
       {!isLoading && results !== null && (
         <>
           <div className="mb-4 flex items-center justify-between">
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-600">
               {results.length === 0
                 ? "No resources found for your search."
                 : `Found ${results.length} resource${results.length !== 1 ? "s" : ""}`}{" "}
@@ -178,7 +188,7 @@ function ResourcesContent() {
               <h3 className="text-lg font-medium text-slate-700 mb-2">
                 No results found
               </h3>
-              <p className="text-slate-500 text-sm max-w-sm mx-auto">
+              <p className="text-slate-600 text-sm max-w-sm mx-auto">
                 Try expanding your radius, removing filters, or searching a
                 different zip code.
               </p>
@@ -218,7 +228,7 @@ function ResourcesContent() {
           <h3 className="text-xl font-semibold text-slate-700 mb-2">
             Ready to find resources?
           </h3>
-          <p className="text-slate-500 max-w-sm mx-auto">
+          <p className="text-slate-600 max-w-sm mx-auto">
             Enter your zip code above and search for nearby VA facilities,
             healthcare, benefits, and more.
           </p>

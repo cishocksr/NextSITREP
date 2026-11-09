@@ -15,6 +15,7 @@ interface ResourceCardProps {
 }
 
 export function ResourceCard({ resource, onSaved }: ResourceCardProps) {
+  const initiallySaved = useRef(resource.isSaved);
   const [isSaved, setIsSaved] = useState(resource.isSaved);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,15 +76,15 @@ export function ResourceCard({ resource, onSaved }: ResourceCardProps) {
     .join(", ");
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col gap-3 hover:shadow-md transition-shadow">
+    <div className="min-w-0 break-words bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col gap-3 hover:shadow-md transition-shadow">
       {/* Header */}
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-slate-900 leading-snug line-clamp-2">
+          <h3 className="font-semibold text-slate-900 leading-snug break-words">
             {resource.name}
           </h3>
           {resource.distanceMiles != null && (
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-600 mt-0.5">
               {resource.distanceMiles.toFixed(1)} mi away
             </p>
           )}
@@ -95,7 +96,7 @@ export function ResourceCard({ resource, onSaved }: ResourceCardProps) {
 
       {/* Description */}
       {resource.description && (
-        <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed">
+        <p className="text-sm text-slate-600 break-words leading-relaxed">
           {resource.description}
         </p>
       )}
@@ -104,7 +105,7 @@ export function ResourceCard({ resource, onSaved }: ResourceCardProps) {
       <div className="flex flex-col gap-1.5 text-sm text-slate-600">
         {addressLine && (
           <div className="flex items-start gap-2">
-            <span className="shrink-0 text-slate-400" aria-hidden>
+            <span className="shrink-0 text-slate-600" aria-hidden>
               📍
             </span>
             <span>{addressLine}</span>
@@ -112,11 +113,12 @@ export function ResourceCard({ resource, onSaved }: ResourceCardProps) {
         )}
         {resource.phone && (
           <div className="flex items-center gap-2">
-            <span className="shrink-0 text-slate-400" aria-hidden>
+            <span className="shrink-0 text-slate-600" aria-hidden>
               📞
             </span>
             <a
               href={`tel:${resource.phone}`}
+              aria-label={`Call ${resource.name} at ${resource.phone}`}
               className="text-blue-600 hover:underline"
             >
               {resource.phone}
@@ -125,14 +127,15 @@ export function ResourceCard({ resource, onSaved }: ResourceCardProps) {
         )}
         {website && (
           <div className="flex items-center gap-2">
-            <span className="shrink-0 text-slate-400" aria-hidden>
+            <span className="shrink-0 text-slate-600" aria-hidden>
               🌐
             </span>
             <a
               href={website}
+              aria-label={`Visit website for ${resource.name} (opens in a new tab)`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 hover:underline truncate"
+              className="text-blue-600 hover:underline break-words"
             >
               Visit website
             </a>
@@ -147,6 +150,9 @@ export function ResourceCard({ resource, onSaved }: ResourceCardProps) {
           message={error}
         />
       )}
+      <output className="sr-only" aria-live="polite">
+        {isSaved && !initiallySaved.current ? `${resource.name} saved.` : ""}
+      </output>
       {/* Actions */}
       <div className="pt-1 mt-auto">
         <Button
@@ -154,6 +160,7 @@ export function ResourceCard({ resource, onSaved }: ResourceCardProps) {
           size="sm"
           isLoading={isSaving}
           disabled={isSaved}
+          aria-label={`${isSaved ? "Saved" : "Save Resource"}: ${resource.name}`}
           onClick={handleSave}
           className="w-full"
         >

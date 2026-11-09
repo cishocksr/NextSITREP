@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/Button";
+import { buttonStyles } from "@/components/ui/Button";
 
 const features = [
   {
@@ -52,19 +52,25 @@ export default function LandingPage() {
             providers, all in one place.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/register">
-              <Button size="lg" variant="primary" className="w-full sm:w-auto">
-                Create Free Account
-              </Button>
+            <Link
+              href="/register"
+              className={buttonStyles({
+                variant: "primary",
+                size: "lg",
+                className: "w-full sm:w-auto",
+              })}
+            >
+              Create Free Account
             </Link>
-            <Link href="/login">
-              <Button
-                size="lg"
-                variant="heroSecondary"
-                className="w-full sm:w-auto"
-              >
-                Sign In
-              </Button>
+            <Link
+              href="/login"
+              className={buttonStyles({
+                variant: "heroSecondary",
+                size: "lg",
+                className: "w-full sm:w-auto",
+              })}
+            >
+              Sign In
             </Link>
           </div>
         </div>
@@ -76,7 +82,7 @@ export default function LandingPage() {
           <h2 className="text-3xl font-bold text-slate-900 mb-3">
             Everything You Need, In One Place
           </h2>
-          <p className="text-slate-500 max-w-xl mx-auto">
+          <p className="text-slate-600 max-w-xl mx-auto">
             Search by zip code and instantly see VA facilities and resources
             near you, then save the ones that matter.
           </p>
@@ -89,7 +95,7 @@ export default function LandingPage() {
             >
               <div className="text-3xl mb-3">{f.icon}</div>
               <h3 className="font-semibold text-slate-900 mb-2">{f.title}</h3>
-              <p className="text-sm text-slate-500 leading-relaxed">
+              <p className="text-sm text-slate-600 leading-relaxed">
                 {f.description}
               </p>
             </div>
@@ -128,7 +134,7 @@ export default function LandingPage() {
                   {item.step}
                 </div>
                 <h3 className="font-semibold text-slate-900">{item.title}</h3>
-                <p className="text-sm text-slate-500">{item.desc}</p>
+                <p className="text-sm text-slate-600">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -140,11 +146,11 @@ export default function LandingPage() {
         <h2 className="text-3xl font-bold text-slate-900 mb-4">
           Ready to find your benefits?
         </h2>
-        <p className="text-slate-500 mb-8">
+        <p className="text-slate-600 mb-8">
           It&apos;s free. No spam. Just resources for veterans, by veterans.
         </p>
-        <Link href="/register">
-          <Button size="lg">Get Started Free</Button>
+        <Link href="/register" className={buttonStyles({ size: "lg" })}>
+          Get Started Free
         </Link>
       </section>
     </div>

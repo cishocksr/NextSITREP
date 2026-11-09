@@ -1,6 +1,7 @@
 interface LoadingSpinnerProps {
   size?: "sm" | "md" | "lg";
   message?: string;
+  announce?: boolean;
 }
 
 const sizeClasses = {
@@ -9,11 +10,19 @@ const sizeClasses = {
   lg: "h-12 w-12",
 };
 
-export function LoadingSpinner({ size = "md", message }: LoadingSpinnerProps) {
+export function LoadingSpinner({
+  size = "md",
+  message,
+  announce = true,
+}: LoadingSpinnerProps) {
+  const Container = announce ? "output" : "div";
   return (
-    <div className="flex flex-col items-center justify-center gap-3 py-12">
+    <Container
+      aria-live={announce ? "polite" : undefined}
+      className="flex flex-col items-center justify-center gap-3 py-12"
+    >
       <svg
-        className={`animate-spin text-blue-600 ${sizeClasses[size]}`}
+        className={`animate-spin motion-reduce:animate-none text-blue-600 ${sizeClasses[size]}`}
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
         viewBox="0 0 24 24"
@@ -33,7 +42,9 @@ export function LoadingSpinner({ size = "md", message }: LoadingSpinnerProps) {
           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
         />
       </svg>
-      {message && <p className="text-sm text-slate-500">{message}</p>}
-    </div>
+      <span className={message ? "text-sm text-slate-600" : "sr-only"}>
+        {message ?? "Loading…"}
+      </span>
+    </Container>
   );
 }

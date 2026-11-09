@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Button } from "@/components/ui/Button";
+import { Button, buttonStyles } from "@/components/ui/Button";
 import { useAuth } from "@/context/AuthContext";
 import { BRANCH_LABELS } from "@/lib/types";
 
@@ -17,9 +17,12 @@ export function Navbar() {
   const pathname = usePathname();
 
   return (
-    <nav className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/95 backdrop-blur-sm">
+    <nav
+      aria-label="Primary"
+      className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/95 backdrop-blur-sm"
+    >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between gap-4">
+        <div className="flex min-h-16 flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2">
           {/* Logo */}
           <Link
             href={isAuthenticated ? "/dashboard" : "/"}
@@ -40,8 +43,9 @@ export function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
+                  aria-current={pathname === link.href ? "page" : undefined}
                   className={[
-                    "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+                    "inline-flex min-h-11 items-center px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
                     pathname === link.href
                       ? "bg-blue-50 text-blue-700"
                       : "text-slate-600 hover:text-slate-900 hover:bg-slate-100",
@@ -54,14 +58,14 @@ export function Navbar() {
           )}
 
           {/* Right side */}
-          <div className="flex items-center gap-3">
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             {isAuthenticated && user ? (
               <>
-                <div className="hidden md:block text-right">
+                <div className="hidden md:block max-w-40 break-words text-right">
                   <p className="text-sm font-medium text-slate-900 leading-none">
                     {user.firstName} {user.lastName}
                   </p>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-slate-600 mt-0.5">
                     {BRANCH_LABELS[user.branchOfService]}
                   </p>
                 </div>
@@ -71,15 +75,17 @@ export function Navbar() {
               </>
             ) : (
               <>
-                <Link href="/login">
-                  <Button variant="ghost" size="sm">
-                    Sign In
-                  </Button>
+                <Link
+                  href="/login"
+                  className={buttonStyles({ variant: "ghost", size: "sm" })}
+                >
+                  Sign In
                 </Link>
-                <Link href="/register">
-                  <Button variant="primary" size="sm">
-                    Get Started
-                  </Button>
+                <Link
+                  href="/register"
+                  className={buttonStyles({ variant: "primary", size: "sm" })}
+                >
+                  Get Started
                 </Link>
               </>
             )}
@@ -88,13 +94,14 @@ export function Navbar() {
 
         {/* Mobile nav links */}
         {isAuthenticated && (
-          <div className="flex sm:hidden gap-1 pb-2">
+          <div className="flex flex-wrap sm:hidden gap-1 pb-2">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
+                aria-current={pathname === link.href ? "page" : undefined}
                 className={[
-                  "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+                  "inline-flex min-h-11 items-center px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
                   pathname === link.href
                     ? "bg-blue-50 text-blue-700"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-100",

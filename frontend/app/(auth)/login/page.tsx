@@ -13,7 +13,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <div className="text-4xl mb-3">🇺🇸</div>
           <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
-          <p className="text-slate-500 mt-1">
+          <p className="text-slate-600 mt-1">
             Sign in to your Veteran FOB account
           </p>
         </div>

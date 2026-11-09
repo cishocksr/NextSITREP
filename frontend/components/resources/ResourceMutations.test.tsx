@@ -32,22 +32,32 @@ describe("resource mutations", () => {
       const onSaved = vi.fn();
       render(<ResourceCard resource={searchResult()} onSaved={onSaved} />);
       await userEvent.click(
-        screen.getByRole("button", { name: "Save Resource" }),
+        screen.getByRole("button", { name: "Save Resource: Clinic" }),
       );
       expect(await screen.findByRole("alert")).toHaveTextContent(
         "Could not save Clinic",
       );
       expect(onSaved).not.toHaveBeenCalled();
       await userEvent.click(
-        screen.getByRole("button", { name: "Save Resource" }),
+        screen.getByRole("button", { name: "Save Resource: Clinic" }),
       );
       expect(
-        await screen.findByRole("button", { name: "✓ Saved" }),
+        await screen.findByRole("button", { name: "Saved: Clinic" }),
       ).toBeDisabled();
       expect(screen.queryByRole("alert")).not.toBeInTheDocument();
       expect(onSaved).toHaveBeenCalledOnce();
     },
   );
+
+  it("retains the save announcement when its parent updates the saved prop", async () => {
+    vi.mocked(resourceApi.save).mockResolvedValueOnce(savedResource());
+    const view = render(<ResourceCard resource={searchResult()} />);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Save Resource: Clinic" }),
+    );
+    view.rerender(<ResourceCard resource={searchResult({ isSaved: true })} />);
+    expect(screen.getByRole("status")).toHaveTextContent("Clinic saved.");
+  });
 
   it("keeps a resource after failed removal and reports success only after retry", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
@@ -62,13 +72,17 @@ describe("resource mutations", () => {
         onUpdated={vi.fn()}
       />,
     );
-    await userEvent.click(screen.getByRole("button", { name: "Remove" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Remove: Clinic" }),
+    );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Removal unavailable",
     );
     expect(screen.getByText("Clinic")).toBeInTheDocument();
     expect(onRemoved).not.toHaveBeenCalled();
-    await userEvent.click(screen.getByRole("button", { name: "Remove" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Remove: Clinic" }),
+    );
     expect(onRemoved).toHaveBeenCalledExactlyOnceWith("saved-1");
   });
 
@@ -80,7 +94,7 @@ describe("resource mutations", () => {
       <ResourceCard resource={searchResult()} onSaved={onSaved} />,
     );
     await userEvent.click(
-      screen.getByRole("button", { name: "Save Resource" }),
+      screen.getByRole("button", { name: "Save Resource: Clinic" }),
     );
     view.unmount();
     await act(async () => pending.resolve(savedResource()));
@@ -94,7 +108,7 @@ describe("notes editor lifecycle", () => {
   });
   afterEach(() => vi.restoreAllMocks());
 
-  it.each(["Cancel", "Close", "Close notes modal", "Escape"])(
+  it.each(["Cancel", "Close", "Backdrop", "Escape"])(
     "asks before discarding a dirty draft via %s",
     async (action) => {
       const confirm = vi
@@ -113,10 +127,15 @@ describe("notes editor lifecycle", () => {
         screen.getByRole("textbox", { name: "Resource notes" }),
         { target: { value: "Unsaved draft" } },
       );
-      const close = () =>
-        action === "Escape"
-          ? fireEvent.keyDown(window, { key: "Escape" })
-          : fireEvent.click(screen.getByRole("button", { name: action }));
+      const close = () => {
+        const dialog = screen.getByRole("dialog");
+        if (action === "Escape")
+          fireEvent(dialog, new Event("cancel", { cancelable: true }));
+        else if (action === "Backdrop") {
+          fireEvent.pointerDown(dialog, { clientX: -1, clientY: -1 });
+          fireEvent.pointerUp(dialog, { clientX: -1, clientY: -1 });
+        } else fireEvent.click(screen.getByRole("button", { name: action }));
+      };
       close();
       expect(onClose).not.toHaveBeenCalled();
       expect(
@@ -145,11 +164,16 @@ describe("notes editor lifecycle", () => {
     fireEvent.change(textarea, { target: { value: "Save this draft" } });
     await userEvent.click(screen.getByRole("button", { name: "Save Notes" }));
     expect(textarea).toHaveAttribute("readonly");
-    for (const name of ["Cancel", "Close", "Close notes modal", "Save Notes"]) {
+    for (const name of ["Cancel", "Close", "Save Notes"]) {
       expect(screen.getByRole("button", { name })).toBeDisabled();
       fireEvent.click(screen.getByRole("button", { name }));
     }
-    fireEvent.keyDown(window, { key: "Escape" });
+    expect(
+      fireEvent(
+        screen.getByRole("dialog"),
+        new Event("cancel", { cancelable: true }),
+      ),
+    ).toBe(false);
     expect(confirm).not.toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
     expect(resourceApi.updateNotes).toHaveBeenCalledExactlyOnceWith("saved-1", {

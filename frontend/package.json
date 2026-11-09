@@ -13,7 +13,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:security:http": "node --test test/security-http.integration.mjs",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test:accessibility:browser": "node --test test/accessibility-browser.integration.mjs"
   },
   "dependencies": {
     "next": "16.4.5",
