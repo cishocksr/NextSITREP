@@ -56,7 +56,7 @@ public class SavedResourceServiceImpl implements SavedResourceService {
                 .notes(request.notes())
                 .build();
 
-        SavedResource saved = savedResourceRepository.save(savedResource);
+        SavedResource saved = savedResourceRepository.saveAndFlush(savedResource);
         log.info("User {} saved resource: {} ({})", userEmail, request.name(), request.externalId());
 
         return SavedResourceResponse.from(saved);
@@ -77,7 +77,7 @@ public class SavedResourceServiceImpl implements SavedResourceService {
         SavedResource savedResource = loadAndVerifyOwnership(userEmail, savedResourceId);
 
         savedResource.setNotes(notes == null || notes.isBlank() ? null : notes);
-        SavedResource updated = savedResourceRepository.save(savedResource);
+        SavedResource updated = savedResourceRepository.saveAndFlush(savedResource);
 
         log.debug("User {} updated notes on saved resource {}", userEmail, savedResourceId);
         return SavedResourceResponse.from(updated);
