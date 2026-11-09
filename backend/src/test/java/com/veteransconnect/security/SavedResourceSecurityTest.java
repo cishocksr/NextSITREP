@@ -166,4 +166,21 @@ class SavedResourceSecurityTest {
                 .andExpect(status().isBadRequest());
         assertThat(resources.count()).isEqualTo(1);
     }
+    @ParameterizedTest
+    @ValueSource(strings = {"javascript:alert(1)", "data:text/html,test", "file:///tmp/test", "/relative", "//example.test", "https://user:pass@example.test", "https://", "https://example.test/has space", ""})
+    void invalidWebsiteIsRejectedBeforePersistence(String website) throws Exception {
+        String body = BODY.replace("\"category\":", "\"website\":\"" + website + "\",\"category\":");
+        mvc.perform(mutation(post(BASE), aliceToken).contentType("application/json").content(body))
+                .andExpect(status().isBadRequest());
+        assertThat(resources.count()).isEqualTo(1);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"http://example.test/path", "https://example.test/path?value=one#section"})
+    void absoluteHttpWebsitesAreAccepted(String website) throws Exception {
+        String body = BODY.replace("\"category\":", "\"website\":\"" + website + "\",\"category\":");
+        mvc.perform(mutation(post(BASE), aliceToken).contentType("application/json").content(body))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.website").value(website));
+    }
+
 }

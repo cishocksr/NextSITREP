@@ -1,6 +1,7 @@
 package com.veteransconnect.dto;
 
 import com.veteransconnect.model.enums.ResourceCategory;
+import com.veteransconnect.validation.HttpWebsite;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -25,6 +26,7 @@ public record SaveResourceRequest(
         ResourceCategory category,
 
         String phone,
+        @HttpWebsite
         String website,
         String address,
         String city,

@@ -33,7 +33,10 @@ export function RegisterForm() {
     acceptsLegal: false,
   });
 
-  function update(field: keyof typeof form, value: string | boolean) {
+  function update<K extends keyof typeof form>(
+    field: K,
+    value: (typeof form)[K],
+  ) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
@@ -125,7 +128,9 @@ export function RegisterForm() {
           options={branchOptions}
           placeholder="Select branch"
           value={form.branchOfService}
-          onChange={(e) => update("branchOfService", e.target.value)}
+          onChange={(e) =>
+            update("branchOfService", e.target.value as BranchOfService | "")
+          }
         />
         <Input
           label="Zip code"

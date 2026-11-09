@@ -124,8 +124,3 @@ export interface ResourceSearchParams {
   keyword?: string;
   radius?: number;
 }
-
-export interface ApiError {
-  status: number;
-  message: string;
-}
