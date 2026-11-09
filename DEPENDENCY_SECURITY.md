@@ -4,6 +4,16 @@
 
 OSV Scanner **2.7.0** scans the committed Bun lockfile and an exact Maven-resolved inventory. Its Linux x86-64 / macOS ARM64 binaries are downloaded from the official release and verified against committed SHA-256 digests. Python uses only its standard library; no application dependencies change. Review scanner releases/digests at least monthly through a separate PR.
 
+The installer makes at most three download attempts, with one- and two-second
+backoffs for transient HTTP/network failures. The first uses the release download
+URL; retries use GitHub's [documented binary release-asset API](https://docs.github.com/en/rest/releases/assets#get-a-release-asset)
+with `Accept: application/octet-stream`. Each platform's official asset ID is pinned
+beside its existing digest. Review version, filename, digest and asset ID together
+on upgrades. Public downloads require no token or added workflow permissions.
+All received bytes must match the committed digest before installation; neither
+checksum mismatches nor permanent HTTP 401/403/404 errors are retried. Exhausted
+downloads still fail the job.
+
 [OSV supports Bun lockfiles](https://google.github.io/osv-scanner/supported-languages-and-lockfiles/). For backend completeness, the existing Maven dependency plugin **3.8.1** produces JSON rather than asking OSV to independently resolve a POM. Conversion preserves resolved versions, transitive dependencies and compile/runtime/test/provided/system scopes, excluding the application root. Test-only dependencies are included. Native Maven POM resolution by OSV currently omits test dependencies. This is advisory matching, not reachability or exploit testing.
 
 The replaced workflow only listed Maven dependencies/updates. Its frontend command used `npm audit` without an npm lockfile, blanket `bun pm trust --all`, and ignored failures. No Bun install or dependency lifecycle scripts are needed by the replacement scanner. Existing frontend install/test jobs and their explicit trust configuration remain unchanged. No duplicate scanner or updater is added.
@@ -84,6 +94,42 @@ Do not put credentials in arguments or dump environment variables. A findings/po
 - actionlint checks the caller and reusable workflow. Controlled checks verify every prerequisite-result combination fails Quality Gate unless all three succeed, and standalone schedule/manual operation has no PR-only prerequisite.
 
 ## Limits and follow-ups
+
+### Download recovery verified on 2026-11-09
+
+[CI run 42566320460](https://github.com/cishocksr/NextSITREP/actions/runs/42566320460)
+failed at scanner installation with HTTP 504, before either ecosystem could be
+scanned. Two failed-job reruns reproduced the same download error. Frontend and
+backend application jobs passed; dependency manifests and security configuration
+had not changed in the search/saved/notes commit. A local direct download of the
+same Linux asset matched the existing pinned digest, so the evidence points to
+runner-path download availability, not a checksum or detected-vulnerability failure.
+
+The installer now has bounded retries and the official API fallback described
+above. Workflow scan steps require successful scanner installation; Maven scanning
+also requires its inventory. A failed installation still fails Dependency Security
+and Quality Gate. If Maven inventory resolution fails after successful installation,
+the independent frontend scan can still run. A frontend finding does not suppress
+the backend scan. No vulnerability thresholds, exceptions, scanner version or hashes
+were changed.
+
+Verification in an isolated copy of `0bfeab9`:
+
+- All **14 offline security tests** pass, including transient recovery, retry limits,
+  permanent errors, metadata/tampered responses and preservation of an existing
+  target after failure.
+- With the primary request deliberately made to return 504, the real API fallback
+  downloaded the Linux binary and verified its unchanged committed SHA-256. The
+  Linux binary was not executed on macOS.
+- Fresh live scans with the checksum-verified macOS scanner report **243 frontend**
+  and **147 resolved Maven** package entries, zero advisory groups and zero blockers.
+  Maven inventory was regenerated from this source using Java 21, including test scope.
+- Workflow YAML parses and `git diff --check` passes. Application code/dependencies
+  are unchanged, so application suites were not repeated for this downloader fix.
+
+The failed GitHub attempts used the old installer. Hosted execution of this patch
+requires committing/pushing it and a new CI attempt; local download/scan evidence
+does not establish a green hosted run. `actionlint` was unavailable in this session.
 
 GitHub-hosted Linux execution, reusable-workflow status propagation, cache restore, artifact upload, schedule delivery and notification recipients require the first real PR/manual/scheduled run after review/merge. Local tests execute on macOS ARM64. The Linux binary hash comes from official release metadata; local installer tests exercise checksum rejection, not Linux execution. Release hashing does not replace independent SLSA provenance verification.
 

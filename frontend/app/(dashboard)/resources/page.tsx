@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Suspense,
   useCallback,
@@ -13,87 +13,100 @@ import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { ResourceCard } from "@/components/resources/ResourceCard";
 import { ResourceFilters } from "@/components/resources/ResourceFilters";
 import { Alert } from "@/components/ui/Alert";
+import { Button } from "@/components/ui/Button";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/context/AuthContext";
 import { resourceApi } from "@/lib/api";
-import type {
-  ResourceCategory,
-  ResourceSearchParams,
-  ResourceSearchResult,
-} from "@/lib/types";
-import { CATEGORY_LABELS } from "@/lib/types";
+import {
+  normalizeSearch,
+  readSearchQuery,
+  type SubmittedSearch,
+  searchQuery,
+} from "@/lib/search";
+import type { ResourceSearchParams, ResourceSearchResult } from "@/lib/types";
+
+type SearchState =
+  | { status: "idle" }
+  | { status: "loading"; key: string }
+  | { status: "error"; key: string; message: string }
+  | {
+      status: "success";
+      key: string;
+      params: SubmittedSearch;
+      results: ResourceSearchResult[];
+    };
 
 function ResourcesContent() {
   const { user } = useAuth();
-  const searchParams = useSearchParams();
-  const categoryParam = searchParams.get("category");
-  const keywordParam = searchParams.get("keyword") ?? "";
-  const radiusParam = Number(searchParams.get("radius") ?? "25");
-  const zipCodeParam = searchParams.get("zipCode") ?? "";
-  const defaultCategory =
-    categoryParam && categoryParam in CATEGORY_LABELS
-      ? (categoryParam as ResourceCategory)
-      : "";
-  const [results, setResults] = useState<ResourceSearchResult[] | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [lastSearch, setLastSearch] = useState<ResourceSearchParams | null>(
-    null,
+  const router = useRouter();
+  const query = useSearchParams().toString();
+  const parsed = readSearchQuery(query, user?.zipCode);
+  const key = parsed.key;
+  const requestParams = useMemo(
+    () => (key ? readSearchQuery(key).params : null),
+    [key],
   );
-  const defaultZip = zipCodeParam || user?.zipCode || "";
-  const searchIntentKey = useMemo(
-    () =>
-      new URLSearchParams({
-        zipCode: defaultZip,
-        category: defaultCategory,
-        keyword: keywordParam,
-        radius: String(Number.isNaN(radiusParam) ? 25 : radiusParam),
-      }).toString(),
-    [defaultCategory, defaultZip, keywordParam, radiusParam],
-  );
-  const lastAutoSearchKey = useRef<string | null>(null);
-
-  const handleSearch = useCallback(async (params: ResourceSearchParams) => {
-    setIsLoading(true);
-    setError(null);
-    setLastSearch(params);
-    try {
-      const data = await resourceApi.search(params);
-      setResults(data);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Search failed. Please try again.",
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const [search, setSearch] = useState<SearchState>({ status: "idle" });
+  const request = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    const hasSearchIntent =
-      zipCodeParam !== "" || categoryParam !== null || keywordParam !== "";
+    if (key && key !== query)
+      router.replace(`/resources?${key}`, { scroll: false });
+  }, [key, query, router]);
 
-    if (!hasSearchIntent || defaultZip.length !== 5) return;
-    if (lastAutoSearchKey.current === searchIntentKey) return;
+  const runSearch = useCallback(
+    async (params: SubmittedSearch, requestKey: string) => {
+      request.current?.abort();
+      const controller = new AbortController();
+      request.current = controller;
+      setSearch({ status: "loading", key: requestKey });
+      try {
+        const results = await resourceApi.search(params, controller.signal);
+        if (!controller.signal.aborted)
+          setSearch({ status: "success", key: requestKey, params, results });
+      } catch (error) {
+        if (!controller.signal.aborted)
+          setSearch({
+            status: "error",
+            key: requestKey,
+            message:
+              error instanceof Error
+                ? error.message
+                : "Search failed. Please try again.",
+          });
+      }
+    },
+    [],
+  );
 
-    lastAutoSearchKey.current = searchIntentKey;
-    void handleSearch({
-      zipCode: defaultZip,
-      category: defaultCategory || undefined,
-      keyword: keywordParam || undefined,
-      radius: Number.isNaN(radiusParam) ? 25 : radiusParam,
-    });
-  }, [
-    categoryParam,
-    defaultCategory,
-    defaultZip,
-    handleSearch,
-    keywordParam,
-    radiusParam,
-    searchIntentKey,
-    zipCodeParam,
-  ]);
+  useEffect(() => {
+    if (requestParams && key) void runSearch(requestParams, key);
+    return () => {
+      request.current?.abort();
+    };
+  }, [requestParams, key, runSearch]);
 
+  const handleSearch = useCallback(
+    (params: ResourceSearchParams) => {
+      const submitted = normalizeSearch(params);
+      const nextKey = searchQuery(submitted);
+      if (nextKey === key) void runSearch(submitted, nextKey);
+      else router.push(`/resources?${nextKey}`, { scroll: false });
+    },
+    [key, router, runSearch],
+  );
+
+  const snapshot =
+    search.status === "success" && search.key === key ? search : null;
+  const results = snapshot?.results ?? null;
+  const isLoading =
+    key !== null &&
+    (search.status === "idle" ||
+      search.key !== key ||
+      search.status === "loading");
+  const error =
+    parsed.error ??
+    (search.status === "error" && search.key === key ? search.message : null);
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
       {/* Page header */}
@@ -107,10 +120,11 @@ function ResourcesContent() {
       {/* Filters */}
       <div className="mb-8">
         <ResourceFilters
-          defaultZip={defaultZip}
-          defaultCategory={defaultCategory}
-          defaultKeyword={keywordParam}
-          defaultRadius={Number.isNaN(radiusParam) ? 25 : radiusParam}
+          key={key ?? query}
+          defaultZip={parsed.defaults.zipCode}
+          defaultCategory={parsed.defaults.category}
+          defaultKeyword={parsed.defaults.keyword}
+          defaultRadius={parsed.defaults.radius}
           onSearch={handleSearch}
           isLoading={isLoading}
         />
@@ -122,11 +136,29 @@ function ResourcesContent() {
       )}
 
       {error && !isLoading && (
-        <Alert
-          variant="error"
-          message={error}
-          onDismiss={() => setError(null)}
-        />
+        <div>
+          <Alert
+            variant="error"
+            title={
+              requestParams
+                ? `Search near ${requestParams.zipCode} failed`
+                : "Review your search filters"
+            }
+            message={error}
+          />
+          {requestParams && (
+            <Button
+              type="button"
+              variant="secondary"
+              className="mt-3"
+              onClick={() => {
+                if (requestParams && key) void runSearch(requestParams, key);
+              }}
+            >
+              Retry search
+            </Button>
+          )}
+        </div>
       )}
 
       {!isLoading && results !== null && (
@@ -136,7 +168,7 @@ function ResourcesContent() {
               {results.length === 0
                 ? "No resources found for your search."
                 : `Found ${results.length} resource${results.length !== 1 ? "s" : ""}`}{" "}
-              {lastSearch?.zipCode && `near ${lastSearch.zipCode}`}
+              {snapshot && `near ${snapshot.params.zipCode}`}
             </p>
           </div>
 
@@ -157,6 +189,21 @@ function ResourcesContent() {
                 <ResourceCard
                   key={`${r.sourceApi}-${r.externalId}`}
                   resource={r}
+                  onSaved={(saved) =>
+                    setSearch((previous) =>
+                      previous.status === "success" && previous.key === key
+                        ? {
+                            ...previous,
+                            results: previous.results.map((item) =>
+                              item.sourceApi === saved.sourceApi &&
+                              item.externalId === saved.externalId
+                                ? saved
+                                : item,
+                            ),
+                          }
+                        : previous,
+                    )
+                  }
                 />
               ))}
             </div>
@@ -165,7 +212,7 @@ function ResourcesContent() {
       )}
 
       {/* Empty state before first search */}
-      {!isLoading && results === null && !error && (
+      {!parsed.hasIntent && !isLoading && results === null && !error && (
         <div className="text-center py-20">
           <div className="text-6xl mb-5">🗺️</div>
           <h3 className="text-xl font-semibold text-slate-700 mb-2">

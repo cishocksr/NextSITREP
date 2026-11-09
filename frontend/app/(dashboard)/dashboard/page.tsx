@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
@@ -11,6 +18,8 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Select } from "@/components/ui/Select";
 import { useAuth } from "@/context/AuthContext";
 import { resourceApi } from "@/lib/api";
+import type { LoadState } from "@/lib/load-state";
+import { normalizeSearch, SEARCH_RADII, searchQuery } from "@/lib/search";
 import type {
   BranchOfService,
   ResourceCategory,
@@ -80,12 +89,10 @@ const categoryOptions = [
   })),
 ];
 
-const radiusOptions = [
-  { value: "10", label: "10 miles" },
-  { value: "25", label: "25 miles" },
-  { value: "50", label: "50 miles" },
-  { value: "100", label: "100 miles" },
-];
+const radiusOptions = SEARCH_RADII.map((radius) => ({
+  value: String(radius),
+  label: `${radius} miles`,
+}));
 
 const branchThemes: Record<
   BranchOfService,
@@ -172,11 +179,14 @@ function formatSavedDate(value: string): string {
 function DashboardContent() {
   const router = useRouter();
   const { user } = useAuth();
-  const [savedResources, setSavedResources] = useState<SavedResourceResponse[]>(
-    [],
-  );
-  const [isLoadingSaved, setIsLoadingSaved] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [savedLoad, setSavedLoad] = useState<
+    LoadState<SavedResourceResponse[]>
+  >({ status: "loading" });
+  const request = useRef<AbortController | null>(null);
+  const savedResources = savedLoad.status === "success" ? savedLoad.data : [];
+  const isLoadingSaved = savedLoad.status === "loading";
+  const error = savedLoad.status === "error" ? savedLoad.message : null;
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [zipCode, setZipCode] = useState("");
   const [category, setCategory] = useState<ResourceCategory | "">("");
   const [keyword, setKeyword] = useState("");
@@ -192,24 +202,31 @@ function DashboardContent() {
     }
   }, [user?.zipCode]);
 
-  useEffect(() => {
-    async function loadSavedResources() {
-      try {
-        const data = await resourceApi.getSaved();
-        setSavedResources(data);
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to load your saved resources.",
-        );
-      } finally {
-        setIsLoadingSaved(false);
-      }
+  const loadSaved = useCallback(async () => {
+    request.current?.abort();
+    const controller = new AbortController();
+    request.current = controller;
+    setSavedLoad({ status: "loading" });
+    try {
+      const data = await resourceApi.getSaved(controller.signal);
+      if (!controller.signal.aborted) setSavedLoad({ status: "success", data });
+    } catch (cause) {
+      if (!controller.signal.aborted)
+        setSavedLoad({
+          status: "error",
+          message:
+            cause instanceof Error
+              ? cause.message
+              : "Failed to load saved resources.",
+        });
     }
-
-    loadSavedResources();
   }, []);
+  useEffect(() => {
+    void loadSaved();
+    return () => {
+      request.current?.abort();
+    };
+  }, [loadSaved]);
 
   const categoryCounts = useMemo(() => {
     const counts = new Map<ResourceCategory, number>();
@@ -236,16 +253,15 @@ function DashboardContent() {
 
   function handleSearch(e: FormEvent) {
     e.preventDefault();
-    if (!zipCode || zipCode.length !== 5) return;
-
-    const params = new URLSearchParams({
-      zipCode,
-      radius,
-    });
-    if (category) params.set("category", category);
-    if (keyword) params.set("keyword", keyword);
-
-    router.push(`/resources?${params.toString()}`);
+    setSearchError(null);
+    try {
+      const params = normalizeSearch({ zipCode, category, keyword, radius });
+      router.push(`/resources?${searchQuery(params)}`);
+    } catch (cause) {
+      setSearchError(
+        cause instanceof Error ? cause.message : "Review your search filters.",
+      );
+    }
   }
 
   return (
@@ -295,7 +311,11 @@ function DashboardContent() {
               <div className="rounded-lg border border-white/15 bg-white/10 p-4">
                 <p className="text-white/65">Saved</p>
                 <p className="mt-1 text-2xl font-bold">
-                  {isLoadingSaved ? "-" : savedResources.length}
+                  {isLoadingSaved
+                    ? "-"
+                    : error
+                      ? "Unavailable"
+                      : savedResources.length}
                 </p>
               </div>
             </div>
@@ -304,11 +324,17 @@ function DashboardContent() {
 
         {error && (
           <div className="mt-5">
-            <Alert
-              variant="error"
-              message={error}
-              onDismiss={() => setError(null)}
-            />
+            <Alert variant="error" message={error} />
+            <Button
+              type="button"
+              variant="secondary"
+              className="mt-3"
+              onClick={() => {
+                void loadSaved();
+              }}
+            >
+              Retry loading saved resources
+            </Button>
           </div>
         )}
 
@@ -333,6 +359,11 @@ function DashboardContent() {
             </Link>
           </div>
 
+          {searchError && (
+            <div className="mt-4">
+              <Alert variant="error" message={searchError} />
+            </div>
+          )}
           <form
             onSubmit={handleSearch}
             className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-[140px_minmax(0,1fr)_minmax(0,1fr)_150px_130px]"
@@ -387,13 +418,23 @@ function DashboardContent() {
               Saved resources
             </p>
             <p className="mt-2 text-2xl font-bold text-slate-900">
-              {isLoadingSaved ? "-" : savedResources.length}
+              {isLoadingSaved
+                ? "-"
+                : error
+                  ? "Unavailable"
+                  : savedResources.length}
             </p>
           </div>
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">Recently saved</p>
+            <p className="text-sm font-medium text-slate-500">
+              Latest saves (up to 3)
+            </p>
             <p className="mt-2 text-2xl font-bold text-slate-900">
-              {isLoadingSaved ? "-" : recentSaved.length}
+              {isLoadingSaved
+                ? "-"
+                : error
+                  ? "Unavailable"
+                  : recentSaved.length}
             </p>
           </div>
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
@@ -401,9 +442,11 @@ function DashboardContent() {
             <p className="mt-2 truncate text-2xl font-bold text-slate-900">
               {isLoadingSaved
                 ? "-"
-                : topCategory
-                  ? CATEGORY_LABELS[topCategory.category]
-                  : "None"}
+                : error
+                  ? "Unavailable"
+                  : topCategory
+                    ? CATEGORY_LABELS[topCategory.category]
+                    : "None"}
             </p>
           </div>
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
@@ -411,7 +454,11 @@ function DashboardContent() {
               Saved categories
             </p>
             <p className="mt-2 text-2xl font-bold text-slate-900">
-              {isLoadingSaved ? "-" : categoryCounts.length}
+              {isLoadingSaved
+                ? "-"
+                : error
+                  ? "Unavailable"
+                  : categoryCounts.length}
             </p>
           </div>
         </section>
@@ -503,6 +550,11 @@ function DashboardContent() {
                 <div className="mt-5">
                   <LoadingSpinner size="sm" message="Loading..." />
                 </div>
+              ) : error ? (
+                <p className="mt-5 text-sm text-slate-700">
+                  Saved resources are unavailable. Retry loading them to see
+                  your latest saves.
+                </p>
               ) : recentSaved.length === 0 ? (
                 <div className="mt-5 rounded-lg bg-slate-50 p-4">
                   <p className="text-sm font-medium text-slate-800">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { resourceApi } from "@/lib/api";
@@ -17,30 +17,54 @@ export function NotesModal({ resource, onClose, onUpdated }: NotesModalProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const initialNotes = useRef(resource.notes ?? "");
+  const mounted = useRef(true);
+  const saving = useRef(false);
+  const requestClose = useCallback(() => {
+    if (saving.current) return;
+    if (
+      notes !== initialNotes.current &&
+      !window.confirm("Discard your unsaved notes?")
+    )
+      return;
+    onClose();
+  }, [notes, onClose]);
 
   useEffect(() => {
+    mounted.current = true;
     textareaRef.current?.focus();
+    return () => {
+      mounted.current = false;
+    };
   }, []);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        e.preventDefault();
+        requestClose();
+      }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+  }, [requestClose]);
 
   async function handleSave() {
+    if (saving.current) return;
+    saving.current = true;
     setIsSaving(true);
     setError(null);
     try {
       const updated = await resourceApi.updateNotes(resource.id, { notes });
+      if (!mounted.current) return;
       onUpdated(updated);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save notes.");
+      if (mounted.current)
+        setError(err instanceof Error ? err.message : "Failed to save notes.");
     } finally {
-      setIsSaving(false);
+      saving.current = false;
+      if (mounted.current) setIsSaving(false);
     }
   }
 
@@ -49,7 +73,8 @@ export function NotesModal({ resource, onClose, onUpdated }: NotesModalProps) {
       <button
         type="button"
         className="absolute inset-0 z-0 cursor-default"
-        onClick={onClose}
+        onClick={requestClose}
+        disabled={isSaving}
         aria-label="Close notes modal"
       />
       <div
@@ -67,12 +92,14 @@ export function NotesModal({ resource, onClose, onUpdated }: NotesModalProps) {
               Notes: {resource.name}
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              Supports plain text, bullet points (- or •), and markdown
+              Notes are saved as plain text. Use line breaks or bullet
+              characters to organize them.
             </p>
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
+            disabled={isSaving}
             className="shrink-0 text-slate-400 hover:text-slate-600 transition-colors text-lg"
             aria-label="Close"
           >
@@ -92,23 +119,35 @@ export function NotesModal({ resource, onClose, onUpdated }: NotesModalProps) {
           <textarea
             ref={textareaRef}
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            aria-label="Resource notes"
+            readOnly={isSaving}
+            onChange={(e) => {
+              if (!saving.current) setNotes(e.target.value);
+            }}
             maxLength={5000}
             rows={12}
-            placeholder={
-              "Add your notes here...\n\nYou can use:\n- Bullet points\n- Plain text\n- Markdown formatting\n\nFor example:\n- Call to schedule appointment\n- Ask about PACT Act eligibility\n- Bring DD-214 form"
-            }
+            placeholder="Add notes, such as who to call or what to bring to an appointment."
             className="w-full resize-none rounded-lg border border-slate-300 p-3 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono leading-relaxed"
           />
           <div className="flex justify-between items-center text-xs text-slate-400">
-            <span>Tip: Use Markdown for **bold**, _italic_, # headings</span>
+            <span>Formatting characters are displayed as typed.</span>
             <span>{notes.length} / 5000</span>
           </div>
         </div>
 
+        {isSaving && (
+          <output className="px-6 text-sm text-slate-700">
+            Saving your notes. Keep this editor open until saving finishes.
+          </output>
+        )}
         {/* Footer */}
         <div className="flex gap-3 p-6 border-t border-slate-100">
-          <Button variant="ghost" onClick={onClose} className="flex-1">
+          <Button
+            variant="ghost"
+            onClick={requestClose}
+            disabled={isSaving}
+            className="flex-1"
+          >
             Cancel
           </Button>
           <Button

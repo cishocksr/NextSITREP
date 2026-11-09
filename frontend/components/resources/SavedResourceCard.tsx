@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { resourceApi } from "@/lib/api";
@@ -23,17 +24,36 @@ export function SavedResourceCard({
   const [isRemoving, setIsRemoving] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [showFullNotes, setShowFullNotes] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const mounted = useRef(true);
+  const removing = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   async function handleRemove() {
+    if (removing.current || showNotes) return;
     if (!confirm(`Remove "${resource.name}" from your saved resources?`))
       return;
+    removing.current = true;
     setIsRemoving(true);
+    setError(null);
     try {
       await resourceApi.unsave(resource.id);
-      onRemoved(resource.id);
+      if (mounted.current) onRemoved(resource.id);
     } catch (err) {
-      console.error("Failed to remove resource", err);
-      setIsRemoving(false);
+      if (mounted.current)
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Could not remove this resource. Please try again.",
+        );
+    } finally {
+      removing.current = false;
+      if (mounted.current) setIsRemoving(false);
     }
   }
 
@@ -141,11 +161,19 @@ export function SavedResourceCard({
           </div>
         )}
 
+        {error && (
+          <Alert
+            variant="error"
+            title={`Could not remove ${resource.name}`}
+            message={error}
+          />
+        )}
         {/* Actions */}
         <div className="flex gap-2 pt-1 mt-auto">
           <Button
             variant="secondary"
             size="sm"
+            disabled={isRemoving}
             onClick={() => setShowNotes(true)}
             className="flex-1"
           >
@@ -155,6 +183,7 @@ export function SavedResourceCard({
             variant="dangerGhost"
             size="sm"
             isLoading={isRemoving}
+            disabled={showNotes}
             onClick={handleRemove}
           >
             Remove
@@ -164,12 +193,10 @@ export function SavedResourceCard({
 
       {showNotes && (
         <NotesModal
+          key={resource.id}
           resource={resource}
           onClose={() => setShowNotes(false)}
-          onUpdated={(updated) => {
-            onUpdated(updated);
-            setShowNotes(false);
-          }}
+          onUpdated={onUpdated}
         />
       )}
     </>

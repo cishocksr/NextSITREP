@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { resourceApi } from "@/lib/api";
@@ -16,10 +17,21 @@ interface ResourceCardProps {
 export function ResourceCard({ resource, onSaved }: ResourceCardProps) {
   const [isSaved, setIsSaved] = useState(resource.isSaved);
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const mounted = useRef(true);
+  const saving = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   async function handleSave() {
-    if (isSaved) return;
+    if (isSaved || saving.current) return;
+    saving.current = true;
     setIsSaving(true);
+    setError(null);
     try {
       await resourceApi.save({
         externalId: resource.externalId,
@@ -35,12 +47,19 @@ export function ResourceCard({ resource, onSaved }: ResourceCardProps) {
         zipCode: resource.zipCode,
         notes: null,
       });
+      if (!mounted.current) return;
       setIsSaved(true);
       onSaved?.({ ...resource, isSaved: true });
     } catch (err) {
-      console.error("Failed to save resource", err);
+      if (mounted.current)
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Could not save this resource. Please try again.",
+        );
     } finally {
-      setIsSaving(false);
+      saving.current = false;
+      if (mounted.current) setIsSaving(false);
     }
   }
 
@@ -121,6 +140,13 @@ export function ResourceCard({ resource, onSaved }: ResourceCardProps) {
         )}
       </div>
 
+      {error && (
+        <Alert
+          variant="error"
+          title={`Could not save ${resource.name}`}
+          message={error}
+        />
+      )}
       {/* Actions */}
       <div className="pt-1 mt-auto">
         <Button

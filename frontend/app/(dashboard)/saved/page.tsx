@@ -1,49 +1,73 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { SavedResourceCard } from "@/components/resources/SavedResourceCard";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { resourceApi } from "@/lib/api";
+import type { LoadState } from "@/lib/load-state";
 import type { ResourceCategory, SavedResourceResponse } from "@/lib/types";
 import { CATEGORY_LABELS } from "@/lib/types";
 
 function SavedContent() {
-  const [resources, setResources] = useState<SavedResourceResponse[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [load, setLoad] = useState<LoadState<SavedResourceResponse[]>>({
+    status: "loading",
+  });
+  const request = useRef<AbortController | null>(null);
+  const resources = load.status === "success" ? load.data : [];
+  const isLoading = load.status === "loading";
+  const error = load.status === "error" ? load.message : null;
   const [filterCategory, setFilterCategory] = useState<ResourceCategory | "">(
     "",
   );
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const data = await resourceApi.getSaved();
-        setResources(data);
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to load saved resources.",
-        );
-      } finally {
-        setIsLoading(false);
-      }
+  const loadSaved = useCallback(async () => {
+    request.current?.abort();
+    const controller = new AbortController();
+    request.current = controller;
+    setLoad({ status: "loading" });
+    try {
+      const data = await resourceApi.getSaved(controller.signal);
+      if (!controller.signal.aborted) setLoad({ status: "success", data });
+    } catch (cause) {
+      if (!controller.signal.aborted)
+        setLoad({
+          status: "error",
+          message:
+            cause instanceof Error
+              ? cause.message
+              : "Failed to load saved resources.",
+        });
     }
-    load();
   }, []);
+  useEffect(() => {
+    void loadSaved();
+    return () => {
+      request.current?.abort();
+    };
+  }, [loadSaved]);
 
   function handleRemoved(id: string) {
-    setResources((prev) => prev.filter((r) => r.id !== id));
+    setLoad((previous) =>
+      previous.status === "success"
+        ? { ...previous, data: previous.data.filter((item) => item.id !== id) }
+        : previous,
+    );
   }
 
   function handleUpdated(updated: SavedResourceResponse) {
-    setResources((prev) =>
-      prev.map((r) => (r.id === updated.id ? updated : r)),
+    setLoad((previous) =>
+      previous.status === "success"
+        ? {
+            ...previous,
+            data: previous.data.map((item) =>
+              item.id === updated.id ? updated : item,
+            ),
+          }
+        : previous,
     );
   }
 
@@ -51,8 +75,14 @@ function SavedContent() {
     new Set(resources.map((r) => r.category)),
   ) as ResourceCategory[];
 
-  const filtered = filterCategory
-    ? resources.filter((r) => r.category === filterCategory)
+  // If the last item in a selected category disappears, show All immediately.
+  const activeCategory = categories.some(
+    (category) => category === filterCategory,
+  )
+    ? filterCategory
+    : "";
+  const filtered = activeCategory
+    ? resources.filter((item) => item.category === activeCategory)
     : resources;
 
   return (
@@ -63,7 +93,9 @@ function SavedContent() {
           <p className="text-slate-500 mt-1">
             {isLoading
               ? "Loading…"
-              : `${resources.length} saved resource${resources.length !== 1 ? "s" : ""}`}
+              : error
+                ? "Saved resources are unavailable."
+                : `${resources.length} saved resource${resources.length !== 1 ? "s" : ""}`}
           </p>
         </div>
         <Link href="/resources">
@@ -76,15 +108,23 @@ function SavedContent() {
       {isLoading && <LoadingSpinner message="Loading your saved resources…" />}
 
       {error && !isLoading && (
-        <Alert
-          variant="error"
-          message={error}
-          onDismiss={() => setError(null)}
-        />
+        <div>
+          <Alert variant="error" message={error} />
+          <Button
+            type="button"
+            variant="secondary"
+            className="mt-3"
+            onClick={() => {
+              void loadSaved();
+            }}
+          >
+            Retry loading saved resources
+          </Button>
+        </div>
       )}
 
       {/* Empty state */}
-      {!isLoading && !error && resources.length === 0 && (
+      {load.status === "success" && resources.length === 0 && (
         <div className="text-center py-20">
           <div className="text-6xl mb-5">📌</div>
           <h3 className="text-xl font-semibold text-slate-700 mb-2">
@@ -109,7 +149,7 @@ function SavedContent() {
               onClick={() => setFilterCategory("")}
               className={[
                 "px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
-                filterCategory === ""
+                activeCategory === ""
                   ? "bg-blue-600 text-white"
                   : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50",
               ].join(" ")}
@@ -123,11 +163,11 @@ function SavedContent() {
                   key={cat}
                   type="button"
                   onClick={() =>
-                    setFilterCategory(cat === filterCategory ? "" : cat)
+                    setFilterCategory(cat === activeCategory ? "" : cat)
                   }
                   className={[
                     "px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
-                    filterCategory === cat
+                    activeCategory === cat
                       ? "bg-blue-600 text-white"
                       : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50",
                   ].join(" ")}

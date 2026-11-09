@@ -6,6 +6,7 @@ import {
   decodeSearchResults,
   requestHeaders,
 } from "./contracts";
+import { searchQuery } from "./search";
 import type {
   AuthResponse,
   LoginRequest,
@@ -201,20 +202,19 @@ export const authApi = {
 };
 
 export const resourceApi = {
-  search(params: ResourceSearchParams): Promise<ResourceSearchResult[]> {
-    const qs = new URLSearchParams();
-    qs.set("zipCode", params.zipCode);
-    if (params.category) qs.set("category", params.category);
-    if (params.keyword) qs.set("keyword", params.keyword);
-    if (params.radius) qs.set("radius", String(params.radius));
+  async search(
+    params: ResourceSearchParams,
+    signal?: AbortSignal,
+  ): Promise<ResourceSearchResult[]> {
     return request(
-      `/api/v1/resources/search?${qs.toString()}`,
+      `/api/v1/resources/search?${searchQuery(params)}`,
       decodeSearchResults,
+      { signal },
     );
   },
 
-  getSaved(): Promise<SavedResourceResponse[]> {
-    return request("/api/v1/resources/saved", decodeSavedResources);
+  getSaved(signal?: AbortSignal): Promise<SavedResourceResponse[]> {
+    return request("/api/v1/resources/saved", decodeSavedResources, { signal });
   },
 
   save(data: SaveResourceRequest): Promise<SavedResourceResponse> {
