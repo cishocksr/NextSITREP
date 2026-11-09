@@ -5,9 +5,9 @@ import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { normalizeSearch, SEARCH_RADII } from "@/lib/search";
+import { normalizeSearch } from "@/lib/search";
+import { categoryOptions, searchRadiusOptions } from "@/lib/search-options";
 import type { ResourceCategory, ResourceSearchParams } from "@/lib/types";
-import { CATEGORY_LABELS } from "@/lib/types";
 
 interface ResourceFiltersProps {
   defaultZip?: string;
@@ -17,13 +17,6 @@ interface ResourceFiltersProps {
   onSearch: (params: ResourceSearchParams) => void;
   isLoading?: boolean;
 }
-
-const categoryOptions = [
-  ...(Object.keys(CATEGORY_LABELS) as ResourceCategory[]).map((key) => ({
-    value: key,
-    label: CATEGORY_LABELS[key],
-  })),
-];
 
 export function ResourceFilters({
   defaultZip = "",
@@ -69,13 +62,7 @@ export function ResourceFilters({
     }
   }
 
-  const radii = Array.from(
-    new Set<number>([...SEARCH_RADII, defaultRadius]),
-  ).sort((a, b) => a - b);
-  const radiusOptions = radii.map((value) => ({
-    value: String(value),
-    label: `${value} miles`,
-  }));
+  const radiusOptions = searchRadiusOptions(defaultRadius);
 
   return (
     <form

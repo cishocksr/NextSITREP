@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { cp, mkdir, mkdtemp, rm, symlink } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
@@ -105,7 +105,7 @@ function contrast(first, second) {
 }
 
 test(
-  "accessibility browser smoke: native modality, keyboard, reflow, states and contrast",
+  "production browser regressions: journey, recovery, accessibility and reflow",
   { timeout: 180_000 },
   async (t) => {
     assert.ok(
@@ -133,21 +133,26 @@ test(
       savedAt: "2026-11-08T12:00:00Z",
       updatedAt: "2026-11-08T12:00:00Z",
     };
-    let authenticated = true;
-    let saved = [
-      resource,
-      {
-        ...resource,
-        id: "synthetic-2",
-        externalId: "facility-2",
-        name: "Housing center",
-        category: "HOUSING",
-      },
-    ];
+    let authenticated = false;
+    let saved = [];
+    let holdNotes = false;
+    let failSave = true;
+    let failRender = true;
+    const auth = {
+      userId: "synthetic-user",
+      email: "pat@example.test",
+      firstName: "LongFirstName".repeat(5),
+      lastName: "Taylor",
+      branchOfService: "COAST_GUARD",
+      zipCode: "12345",
+      expiresIn: 3600,
+    };
+    const calls = [];
     let pendingWrite;
     let writeCount = 0;
     let releaseWrite;
     const upstream = createServer(async (request, response) => {
+      calls.push({ method: request.method, url: request.url });
       let body = "";
       for await (const chunk of request) body += chunk;
       const json = (value, status = 200) => {
@@ -162,20 +167,20 @@ test(
         response.writeHead(204).end();
         return;
       }
+      if (request.url === "/__test__/render-state") {
+        json({ ready: !failRender }, failRender ? 503 : 200);
+        return;
+      }
+      const hasSession =
+        authenticated &&
+        /(?:^|; )vc_session=synthetic-session(?:;|$)/.test(
+          request.headers.cookie ?? "",
+        );
       if (request.url === "/api/v1/auth/me") {
-        if (!authenticated) {
-          json({ message: "Synthetic guest" }, 401);
-          return;
-        }
-        json({
-          userId: "synthetic-user",
-          email: "pat@example.test",
-          firstName: "LongFirstName".repeat(5),
-          lastName: "Taylor",
-          branchOfService: "COAST_GUARD",
-          zipCode: "12345",
-          expiresIn: 3600,
-        });
+        json(
+          hasSession ? auth : { message: "Synthetic guest" },
+          hasSession ? 200 : 401,
+        );
         return;
       }
       if (
@@ -183,6 +188,50 @@ test(
         request.headers["x-xsrf-token"] !== "synthetic"
       ) {
         json({ message: "Missing synthetic CSRF" }, 403);
+        return;
+      }
+      if (request.url === "/api/v1/auth/login" && request.method === "POST") {
+        const credentials = JSON.parse(body);
+        if (
+          credentials.email !== "pat@example.test" ||
+          credentials.password !== "synthetic-password"
+        ) {
+          json({ message: "Synthetic invalid credentials" }, 401);
+          return;
+        }
+        authenticated = true;
+        response.setHeader(
+          "Set-Cookie",
+          "vc_session=synthetic-session; Path=/; HttpOnly; SameSite=Lax",
+        );
+        json(auth);
+        return;
+      }
+      if (!hasSession) {
+        json({ message: "Synthetic guest" }, 401);
+        return;
+      }
+      if (request.url === "/api/v1/auth/logout" && request.method === "POST") {
+        authenticated = false;
+        response.setHeader(
+          "Set-Cookie",
+          "vc_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0",
+        );
+        response.writeHead(204).end();
+        return;
+      }
+      if (
+        request.url === "/api/v1/resources/saved" &&
+        request.method === "POST"
+      ) {
+        if (failSave) {
+          failSave = false;
+          json({ message: "Synthetic save unavailable" }, 503);
+          return;
+        }
+        const created = { ...resource, ...JSON.parse(body) };
+        saved.push(created);
+        json(created, 201);
         return;
       }
       if (request.method === "PATCH") {
@@ -193,6 +242,7 @@ test(
           json(saved[0]);
           pendingWrite = undefined;
         };
+        if (!holdNotes) releaseWrite();
         return;
       }
       if (request.method === "DELETE") {
@@ -201,7 +251,15 @@ test(
         return;
       }
       if (request.url.startsWith("/api/v1/resources/search")) {
-        json([{ ...resource, isSaved: false, distanceMiles: 1 }]);
+        json([
+          {
+            ...resource,
+            isSaved: saved.some(
+              (item) => item.externalId === resource.externalId,
+            ),
+            distanceMiles: 1,
+          },
+        ]);
         return;
       }
       if (request.url === "/api/v1/resources/saved") {
@@ -232,6 +290,20 @@ test(
         join(source, "node_modules"),
         "junction",
       );
+      await mkdir(join(source, "app", "(dashboard)", "review-client-error"), {
+        recursive: true,
+      });
+      await writeFile(
+        join(source, "app", "(dashboard)", "review-client-error", "page.tsx"),
+        '"use client"; import {useState} from "react"; export default function Probe() { const [fail, setFail] = useState(false); if (fail) throw new Error("Synthetic private client detail"); return <><h1>Client recovered</h1><button type="button" onClick={() => setFail(true)}>Trigger rendering failure</button></>; }',
+      );
+      await mkdir(join(source, "app", "review-server-error"), {
+        recursive: true,
+      });
+      await writeFile(
+        join(source, "app", "review-server-error", "page.tsx"),
+        'import {connection} from "next/server"; export default async function Probe() { await connection(); const response = await fetch(process.env.API_PROXY_TARGET + "/__test__/render-state", {cache: "no-store"}); if (!response.ok) throw new Error("Synthetic private server detail"); return <h1>Server recovered</h1>; }',
+      );
       const build = launch(
         process.execPath,
         [next, "build", "--webpack"],
@@ -252,7 +324,11 @@ test(
         process.execPath,
         [next, "start", "--hostname", "127.0.0.1", "--port", "0"],
         source,
-        { NODE_ENV: "production", HTTPS_DEPLOYMENT: "false" },
+        {
+          NODE_ENV: "production",
+          HTTPS_DEPLOYMENT: "false",
+          API_PROXY_TARGET: `http://127.0.0.1:${upstream.address().port}`,
+        },
       );
       const origin = await until(() => {
         assert.equal(app.child.exitCode, null, app.output());
@@ -312,10 +388,31 @@ test(
         );
         return result.result.value;
       };
-      const waitDom = (expression, label) =>
-        until(() => evaluate(expression), label);
+      const waitDom = async (expression, label) => {
+        try {
+          return await until(() => evaluate(expression), label);
+        } catch (error) {
+          const snapshot = await evaluate(
+            'JSON.stringify({url: location.href, text: document.body.innerText.slice(0, 1500), fields: Array.from(document.querySelectorAll("input")).map(input => ({type: input.type, length: input.value.length, valid: input.checkValidity()})), focused: document.activeElement.tagName})',
+          );
+          throw new Error(
+            `${label}: ${error.message}; ${snapshot}; calls: ${JSON.stringify(calls.slice(-8))}`,
+          );
+        }
+      };
+      const loadedDocuments = new Set();
+      cdp.on("Page.lifecycleEvent", (event) => {
+        if (event.name === "load") loadedDocuments.add(event.loaderId);
+      });
+      await cdp.send("Page.setLifecycleEventsEnabled", { enabled: true });
       const navigate = async (path) => {
-        await cdp.send("Page.navigate", { url: `${origin}${path}` });
+        const navigation = await cdp.send("Page.navigate", {
+          url: `${origin}${path}`,
+        });
+        await until(
+          () => loadedDocuments.has(navigation.loaderId),
+          `document load: ${path}`,
+        );
         await waitDom(
           'document.readyState === "complete" && !!document.querySelector("main")',
           path,
@@ -354,6 +451,234 @@ test(
           `Horizontal overflow at ${width}px: ${JSON.stringify(dimensions)}; ${await evaluate('JSON.stringify(Array.from(document.querySelectorAll("main *")).filter(el => el.getBoundingClientRect().right > innerWidth + 1).slice(0, 8).map(el => ({tag: el.tagName, class: el.className, right: el.getBoundingClientRect().right})))')}`,
         );
       };
+      const fill = async (selector, text) => {
+        await evaluate(
+          `document.querySelector(${JSON.stringify(selector)}).focus(); document.querySelector(${JSON.stringify(selector)}).select()`,
+        );
+        await cdp.send("Input.insertText", { text });
+      };
+      const activate = async (selector) => {
+        const point = await evaluate(
+          `(() => { const element = document.querySelector(${JSON.stringify(selector)}); element.focus(); element.scrollIntoView({block: "center", behavior: "instant"}); const bounds = element.getBoundingClientRect(); return {x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2}; })()`,
+        );
+        await cdp.send("Input.dispatchMouseEvent", {
+          type: "mousePressed",
+          button: "left",
+          clickCount: 1,
+          ...point,
+        });
+        await cdp.send("Input.dispatchMouseEvent", {
+          type: "mouseReleased",
+          button: "left",
+          clickCount: 1,
+          ...point,
+        });
+      };
+      const activateText = async (text) => {
+        await evaluate(
+          `Array.from(document.querySelectorAll("button")).find(button => button.textContent.trim() === ${JSON.stringify(text)}).setAttribute("data-browser-action", "active")`,
+        );
+        await activate('[data-browser-action="active"]');
+        await evaluate(
+          'document.querySelector("[data-browser-action=active]")?.removeAttribute("data-browser-action")',
+        );
+      };
+      const login = async () => {
+        await navigate("/login");
+        await waitDom(
+          '!!document.querySelector("input[type=email]") && !!Array.from(document.querySelectorAll("nav a")).find(link => link.getAttribute("href") === "/register")',
+          "guest login form",
+        );
+        await fill("input[type=email]", "pat@example.test");
+        await fill("input[type=password]", "synthetic-password");
+        await activate("form button[type=submit]");
+        await waitDom(
+          'location.pathname === "/dashboard" && !!document.querySelector("h1") && document.querySelector("h1").textContent.includes("Welcome")',
+          "signed-in dashboard",
+        );
+      };
+      await t.test(
+        "login → search → failed save/retry → notes → logout",
+        async () => {
+          await navigate("/saved");
+          await waitDom(
+            'location.pathname === "/login" && !!document.querySelector("input[type=email]")',
+            "protected guest redirect",
+          );
+          const beforeLogin = calls.filter(
+            (call) => call.url === "/api/v1/auth/login",
+          ).length;
+          await activate("form button[type=submit]");
+          assert.equal(
+            calls.filter((call) => call.url === "/api/v1/auth/login").length,
+            beforeLogin,
+            "Native required validation must prevent empty submission",
+          );
+          await fill("input[type=email]", "pat@example.test");
+          await fill("input[type=password]", "wrong-synthetic-password");
+          await activate("form button[type=submit]");
+          await waitDom(
+            'document.querySelector("[role=alert]")?.textContent.includes("Synthetic invalid credentials")',
+            "login rejection",
+          );
+          assert.equal(await evaluate("location.pathname"), "/login");
+          await fill("input[type=password]", "synthetic-password");
+          await activate("form button[type=submit]");
+          await waitDom(
+            'location.pathname === "/dashboard" && !!document.querySelector("form")',
+            "login navigation",
+          );
+          const cookie = (
+            await cdp.send("Network.getCookies", { urls: [origin] })
+          ).cookies.find((cookie) => cookie.name === "vc_session");
+          assert.equal(cookie?.httpOnly, true);
+          assert.equal(
+            await evaluate('document.cookie.includes("vc_session")'),
+            false,
+          );
+          await waitDom(
+            'Array.from(document.querySelectorAll("main p")).some(element => element.textContent === "Nothing saved yet")',
+            "real empty library",
+          );
+          await fill("main form input[pattern]", "90210");
+          await fill("main form input:not([pattern])", "counseling");
+          await evaluate(
+            'const selects = document.querySelectorAll("main form select"); selects[0].value = "HEALTHCARE"; selects[0].dispatchEvent(new Event("change", {bubbles:true})); selects[1].value = "50"; selects[1].dispatchEvent(new Event("change", {bubbles:true}))',
+          );
+          await activate("main form button[type=submit]");
+          await waitDom(
+            'location.pathname === "/resources" && !!document.querySelector("main h3")',
+            "resource results",
+          );
+          assert.equal(
+            await evaluate(
+              'new URLSearchParams(location.search).get("zipCode")',
+            ),
+            "90210",
+          );
+          assert.equal(
+            await evaluate(
+              'new URLSearchParams(location.search).get("radius")',
+            ),
+            "50",
+          );
+          assert.ok(
+            calls.some(
+              (call) =>
+                call.url.includes("zipCode=90210") &&
+                call.url.includes("category=HEALTHCARE") &&
+                call.url.includes("keyword=counseling") &&
+                call.url.includes("radius=50"),
+            ),
+          );
+          await activate('[aria-label^="Save Resource:"]');
+          await waitDom(
+            'document.querySelector("[role=alert]")?.textContent.includes("Synthetic save unavailable")',
+            "save failure",
+          );
+          assert.equal(saved.length, 0);
+          await activate('[aria-label^="Save Resource:"]');
+          await waitDom(
+            '!!Array.from(document.querySelectorAll("button")).find(button => button.getAttribute("aria-label")?.startsWith("Saved:"))',
+            "save retry",
+          );
+          assert.equal(saved.length, 1);
+          await activate('nav a[href="/saved"]');
+          await waitDom(
+            '!!document.querySelector("[data-resource-id]")',
+            "saved resource navigation",
+          );
+          await activate('[aria-label^="Add Notes:"]');
+          await waitDom(
+            '!!document.querySelector("dialog[open]")',
+            "notes open",
+          );
+          await fill("textarea", "Personal plan. ".repeat(20));
+          await activateText("Save Notes");
+          await waitDom('!document.querySelector("dialog")', "notes saved");
+          assert.equal(saved[0].notes, "Personal plan. ".repeat(20));
+          await navigate("/saved");
+          await waitDom(
+            '!!document.querySelector("[data-resource-id]") && document.body.textContent.includes("Personal plan.")',
+            "notes persisted across reload",
+          );
+          await activateText("Sign Out");
+          await waitDom(
+            'location.pathname === "/login" && !!document.querySelector("input[type=email]")',
+            "sign-out redirect",
+          );
+          assert.equal(authenticated, false);
+          assert.equal(
+            (
+              await cdp.send("Network.getCookies", { urls: [origin] })
+            ).cookies.some((cookie) => cookie.name === "vc_session"),
+            false,
+          );
+          assert.equal(
+            await evaluate(
+              'document.body.textContent.includes("Personal plan.")',
+            ),
+            false,
+          );
+          await navigate("/saved");
+          await waitDom(
+            'location.pathname === "/login" && !!document.querySelector("input[type=email]")',
+            "post-logout protected redirect",
+          );
+        },
+      );
+      await login();
+      await t.test(
+        "scoped client and server render failures recover",
+        async () => {
+          await navigate("/review-client-error");
+          await waitDom(
+            'document.querySelector("h1")?.textContent === "Client recovered"',
+            "client fixture",
+          );
+          await activateText("Trigger rendering failure");
+          await waitDom(
+            'document.querySelector("h1")?.textContent === "This workspace is unavailable"',
+            "scoped dashboard boundary",
+          );
+          assert.equal(
+            await evaluate(
+              'document.activeElement === document.querySelector("h1")',
+            ),
+            true,
+          );
+          assert.equal(
+            await evaluate(
+              'document.body.textContent.includes("Synthetic private client detail")',
+            ),
+            false,
+          );
+          await activateText("Try again");
+          await waitDom(
+            'document.querySelector("h1")?.textContent === "Client recovered"',
+            "client recovery",
+          );
+          await navigate("/review-server-error");
+          await waitDom(
+            'document.querySelector("h1")?.textContent === "This page is unavailable"',
+            "root route boundary",
+          );
+          assert.equal(
+            await evaluate(
+              'document.body.textContent.includes("Synthetic private server detail")',
+            ),
+            false,
+          );
+          failRender = false;
+          await activateText("Try again");
+          await waitDom(
+            'document.querySelector("h1")?.textContent === "Server recovered"',
+            "server refetch and recovery",
+          );
+        },
+      );
+      holdNotes = true;
+      writeCount = 0;
       await navigate("/saved");
       await waitDom(
         '!!document.querySelector("[data-resource-id]")',
@@ -540,10 +865,7 @@ test(
       );
       for (const width of [320, 768, 1280]) await reflow(width);
       await navigate("/resources?zipCode=12345&radius=25");
-      await waitDom(
-        '!!document.querySelector("[aria-label^=\\"Save Resource:\\"]")',
-        "search results",
-      );
+      await waitDom('!!document.querySelector("main h3")', "search results");
       for (const width of [320, 768, 1280]) await reflow(width);
       assert.match(
         await evaluate(
@@ -551,7 +873,8 @@ test(
         ),
         /1 resources found near 12345/,
       );
-      authenticated = false;
+      await activateText("Sign Out");
+      await waitDom('location.pathname === "/login"', "guest transition");
       await navigate("/register");
       await waitDom(
         '!!document.querySelector("input[name=confirmPassword]")',

@@ -6,15 +6,17 @@
     "dev": "next dev",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "biome check --write",
+    "lint": "biome check",
     "lint:check": "biome check",
     "format": "biome format --write",
-    "format:check": "biome format ",
+    "format:check": "biome format",
     "test": "vitest",
     "test:run": "vitest run",
     "test:security:http": "node --test test/security-http.integration.mjs",
     "type-check": "tsc --noEmit",
-    "test:accessibility:browser": "node --test test/accessibility-browser.integration.mjs"
+    "test:accessibility:browser": "node --test test/browser.integration.mjs",
+    "lint:fix": "biome check --write",
+    "test:browser": "node --test test/browser.integration.mjs"
   },
   "dependencies": {
     "next": "16.4.5",
