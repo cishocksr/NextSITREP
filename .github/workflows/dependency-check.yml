@@ -48,24 +48,26 @@ jobs:
         run: python3 -m unittest discover -s scripts/security -p 'test_*.py' -v
 
       - name: Install verified OSV Scanner
+        id: install-osv
         run: |
           python3 scripts/security/install_osv.py "$RUNNER_TEMP/osv-scanner"
           "$RUNNER_TEMP/osv-scanner" --version
 
       - name: Resolve backend dependencies including test scope
+        id: maven-inventory
         working-directory: ./backend
         run: |
           mkdir -p "$RUNNER_TEMP/security-reports/backend"
           ./mvnw -B -ntp org.apache.maven.plugins:maven-dependency-plugin:3.8.1:tree -DoutputType=json -DoutputFile="$RUNNER_TEMP/security-reports/backend/maven-tree.json"
           python3 ../scripts/security/maven_inventory.py "$RUNNER_TEMP/security-reports/backend/maven-tree.json" "$RUNNER_TEMP/security-reports/backend/maven.osv-scanner.json"
 
-      # Still scan the other ecosystem if an earlier step failed; failures remain fatal.
+      # Scan independent ecosystems despite findings, but require usable inputs.
       - name: Scan frontend lockfile
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.install-osv.outcome == 'success' }}
         run: python3 scripts/security/scan.py --scanner "$RUNNER_TEMP/osv-scanner" --lockfile frontend/bun.lock --output "$RUNNER_TEMP/security-reports/frontend"
 
       - name: Scan resolved Maven dependencies
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.install-osv.outcome == 'success' && steps.maven-inventory.outcome == 'success' }}
         run: python3 scripts/security/scan.py --scanner "$RUNNER_TEMP/osv-scanner" --lockfile "osv-scanner:$RUNNER_TEMP/security-reports/backend/maven.osv-scanner.json" --output "$RUNNER_TEMP/security-reports/backend"
 
       - name: Upload inventories, advisory details and policy reports
