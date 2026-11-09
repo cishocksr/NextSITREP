@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { resourceApi } from "@/lib/api";
 import type { ResourceSearchResult } from "@/lib/types";
 import { CATEGORY_COLORS, CATEGORY_LABELS } from "@/lib/types";
+import { websiteUrl } from "@/lib/website";
 
 interface ResourceCardProps {
   resource: ResourceSearchResult;
@@ -27,7 +28,7 @@ export function ResourceCard({ resource, onSaved }: ResourceCardProps) {
         description: resource.description,
         category: resource.category,
         phone: resource.phone,
-        website: resource.website,
+        website: websiteUrl(resource.website),
         address: resource.address,
         city: resource.city,
         state: resource.state,
@@ -42,6 +43,8 @@ export function ResourceCard({ resource, onSaved }: ResourceCardProps) {
       setIsSaving(false);
     }
   }
+
+  const website = websiteUrl(resource.website);
 
   const addressLine = [
     resource.address,
@@ -101,13 +104,13 @@ export function ResourceCard({ resource, onSaved }: ResourceCardProps) {
             </a>
           </div>
         )}
-        {resource.website && (
+        {website && (
           <div className="flex items-center gap-2">
             <span className="shrink-0 text-slate-400" aria-hidden>
               🌐
             </span>
             <a
-              href={resource.website}
+              href={website}
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:underline truncate"

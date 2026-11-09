@@ -1,3 +1,11 @@
+import {
+  decodeAuth,
+  decodeEmpty,
+  decodeSavedResource,
+  decodeSavedResources,
+  decodeSearchResults,
+  requestHeaders,
+} from "./contracts";
 import type {
   AuthResponse,
   LoginRequest,
@@ -17,6 +25,43 @@ const CSRF_HEADER_NAME = "X-XSRF-TOKEN";
 let onUnauthorized: (() => void) | null = null;
 export function setOnUnauthorized(fn: () => void) {
   onUnauthorized = fn;
+  return () => {
+    if (onUnauthorized === fn) onUnauthorized = null;
+  };
+}
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+export class SessionChangedError extends Error {
+  constructor() {
+    super("The session changed. Please try again.");
+  }
+}
+
+let sessionVersion = 0;
+export function invalidateSessionRequests(): void {
+  sessionVersion += 1;
+}
+
+// A delayed logout response must finish before a later login sets its cookie.
+let authTransition: Promise<void> = Promise.resolve();
+function transition<T>(operation: () => Promise<T>): Promise<T> {
+  invalidateSessionRequests();
+  const result = authTransition.then(operation);
+  const settled = result.finally(invalidateSessionRequests);
+  authTransition = settled.then(
+    () => undefined,
+    () => undefined,
+  );
+  return settled;
 }
 
 type ApiRequestOptions = RequestInit & {
@@ -59,18 +104,20 @@ async function getCsrfToken(): Promise<string> {
 
 async function request<T>(
   path: string,
+  decode: (value: unknown) => T,
   options: ApiRequestOptions = {},
 ): Promise<T> {
   const { skipUnauthorizedHandler = false, ...fetchOptions } = options;
 
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...(fetchOptions.headers as Record<string, string>),
-  };
+  const version = sessionVersion;
+  const headers = requestHeaders(fetchOptions.headers);
 
   if (isUnsafeMethod(fetchOptions.method)) {
-    headers[CSRF_HEADER_NAME] = await getCsrfToken();
+    headers.set(CSRF_HEADER_NAME, await getCsrfToken());
   }
+
+  if (!skipUnauthorizedHandler && version !== sessionVersion)
+    throw new SessionChangedError();
 
   const res = await fetch(path, {
     ...fetchOptions,
@@ -78,7 +125,10 @@ async function request<T>(
     headers,
   });
 
-  if (!skipUnauthorizedHandler && (res.status === 401 || res.status === 403)) {
+  if (!skipUnauthorizedHandler && version !== sessionVersion)
+    throw new SessionChangedError();
+
+  if (!skipUnauthorizedHandler && res.status === 401) {
     onUnauthorized?.();
   }
 
@@ -86,48 +136,65 @@ async function request<T>(
     let message = `Request failed (${res.status})`;
     try {
       const body = await res.json();
-      message = body.message ?? body.error ?? message;
+      if (body && typeof body === "object") {
+        const detail = body.message ?? body.error;
+        if (typeof detail === "string") message = detail;
+      }
     } catch {
       message = `Request failed (${res.status})`;
     }
-    const err = new Error(message) as Error & { status: number };
-    err.status = res.status;
-    throw err;
+    throw new ApiError(message, res.status);
   }
 
   if (res.status === 204) {
-    return undefined as T;
+    return decode(undefined);
   }
 
-  return res.json() as Promise<T>;
+  let value: unknown;
+  try {
+    value = await res.json();
+  } catch {
+    throw new Error(
+      "The server returned an unexpected response. Please try again.",
+    );
+  }
+  if (!skipUnauthorizedHandler && version !== sessionVersion)
+    throw new SessionChangedError();
+  return decode(value);
 }
 
 export const authApi = {
   register(data: UserRegistrationRequest): Promise<AuthResponse> {
-    return request("/api/v1/auth/register", {
-      method: "POST",
-      body: JSON.stringify(data),
-      skipUnauthorizedHandler: true,
-    });
+    return transition(() =>
+      request("/api/v1/auth/register", decodeAuth, {
+        method: "POST",
+        body: JSON.stringify(data),
+        skipUnauthorizedHandler: true,
+      }),
+    );
   },
 
   login(data: LoginRequest): Promise<AuthResponse> {
-    return request("/api/v1/auth/login", {
-      method: "POST",
-      body: JSON.stringify(data),
-      skipUnauthorizedHandler: true,
-    });
+    return transition(() =>
+      request("/api/v1/auth/login", decodeAuth, {
+        method: "POST",
+        body: JSON.stringify(data),
+        skipUnauthorizedHandler: true,
+      }),
+    );
   },
 
   logout(): Promise<void> {
-    return request("/api/v1/auth/logout", {
-      method: "POST",
-      skipUnauthorizedHandler: true,
-    });
+    return transition(() =>
+      request("/api/v1/auth/logout", decodeEmpty, {
+        method: "POST",
+        skipUnauthorizedHandler: true,
+      }),
+    );
   },
 
   me(): Promise<AuthResponse> {
-    return request("/api/v1/auth/me", {
+    return request("/api/v1/auth/me", decodeAuth, {
       skipUnauthorizedHandler: true,
     });
   },
@@ -140,15 +207,18 @@ export const resourceApi = {
     if (params.category) qs.set("category", params.category);
     if (params.keyword) qs.set("keyword", params.keyword);
     if (params.radius) qs.set("radius", String(params.radius));
-    return request(`/api/v1/resources/search?${qs.toString()}`);
+    return request(
+      `/api/v1/resources/search?${qs.toString()}`,
+      decodeSearchResults,
+    );
   },
 
   getSaved(): Promise<SavedResourceResponse[]> {
-    return request("/api/v1/resources/saved");
+    return request("/api/v1/resources/saved", decodeSavedResources);
   },
 
   save(data: SaveResourceRequest): Promise<SavedResourceResponse> {
-    return request("/api/v1/resources/saved", {
+    return request("/api/v1/resources/saved", decodeSavedResource, {
       method: "POST",
       body: JSON.stringify(data),
     });
@@ -158,14 +228,14 @@ export const resourceApi = {
     id: string,
     data: UpdateNotesRequest,
   ): Promise<SavedResourceResponse> {
-    return request(`/api/v1/resources/saved/${id}/notes`, {
+    return request(`/api/v1/resources/saved/${id}/notes`, decodeSavedResource, {
       method: "PATCH",
       body: JSON.stringify(data),
     });
   },
 
   unsave(id: string): Promise<void> {
-    return request(`/api/v1/resources/saved/${id}`, {
+    return request(`/api/v1/resources/saved/${id}`, decodeEmpty, {
       method: "DELETE",
     });
   },
