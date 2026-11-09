@@ -21,3 +21,27 @@ body {
 html {
   scroll-behavior: smooth;
 }
+
+.notes-dialog {
+  max-height: calc(100vh - 2rem);
+}
+@supports (height: 100dvh) {
+  .notes-dialog {
+    max-height: calc(100dvh - 2rem);
+  }
+}
+.notes-dialog::backdrop {
+  background: rgb(0 0 0 / 50%);
+  backdrop-filter: blur(4px);
+}
+html:has(.notes-dialog[open]) {
+  overflow: hidden;
+}
+html {
+  scrollbar-gutter: stable;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

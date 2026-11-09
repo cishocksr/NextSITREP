@@ -15,7 +15,7 @@ export default function RegisterPage() {
           <h1 className="text-2xl font-bold text-slate-900">
             Create your account
           </h1>
-          <p className="text-slate-500 mt-1">
+          <p className="text-slate-600 mt-1">
             Free access to veteran resources near you
           </p>
         </div>

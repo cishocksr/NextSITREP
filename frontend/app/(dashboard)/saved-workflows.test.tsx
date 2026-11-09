@@ -79,7 +79,12 @@ describe("saved resource recovery", () => {
       screen.getByRole("button", { name: "Healthcare (1)" }),
     );
     expect(screen.queryByText("Housing center")).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Remove" }));
+    expect(
+      screen.getByRole("button", { name: "Healthcare (1)" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Remove: Health clinic" }),
+    );
     await screen.findByText("Housing center");
     expect(screen.getByRole("button", { name: "All (1)" })).toHaveClass(
       "bg-blue-600",
@@ -87,6 +92,13 @@ describe("saved resource recovery", () => {
     expect(
       screen.queryByRole("button", { name: "Healthcare (0)" }),
     ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "All (1)" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(
+      screen.getByRole("heading", { name: "Saved Resources" }),
+    ).toHaveFocus();
     expect(resourceApi.unsave).toHaveBeenCalledWith("saved-1");
   });
 

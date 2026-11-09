@@ -27,7 +27,7 @@ export default function LegalPage({
         <h1 className="mt-2 text-4xl font-bold text-slate-900">{title}</h1>
 
         {lastUpdated && (
-          <p className="mt-3 text-sm text-slate-500">
+          <p className="mt-3 text-sm text-slate-600">
             Last Updated: {lastUpdated}
           </p>
         )}

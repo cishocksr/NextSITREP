@@ -12,7 +12,7 @@ import {
 } from "react";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { Alert } from "@/components/ui/Alert";
-import { Button } from "@/components/ui/Button";
+import { Button, buttonStyles } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Select } from "@/components/ui/Select";
@@ -153,9 +153,9 @@ const branchThemes: Record<
     border: "border-orange-600",
     eyebrow: "text-orange-700",
     panel: "from-blue-950 via-slate-900 to-orange-950",
-    crest: "bg-orange-600 text-white",
+    crest: "bg-orange-700 text-white",
     crestRing: "ring-blue-200/80",
-    button: "bg-orange-600 hover:bg-orange-700",
+    button: "bg-orange-700 hover:bg-orange-800",
   },
   SPACE_FORCE: {
     initials: "SF",
@@ -265,7 +265,14 @@ function DashboardContent() {
   }
 
   return (
-    <main className="min-h-[calc(100vh-4rem)] bg-slate-50">
+    <div className="min-w-0 break-words min-h-[calc(100vh-4rem)] bg-slate-50">
+      <output className="sr-only" aria-live="polite" aria-atomic="true">
+        {isLoadingSaved
+          ? "Loading saved resources."
+          : error
+            ? ""
+            : `${savedResources.length} saved resources loaded.`}
+      </output>
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <section
           className={[
@@ -274,7 +281,7 @@ function DashboardContent() {
             branchTheme.panel,
           ].join(" ")}
         >
-          <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:p-7">
+          <div className="grid grid-cols-1 gap-6 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:p-7">
             <div className="flex min-w-0 gap-4">
               <div
                 className={[
@@ -291,7 +298,7 @@ function DashboardContent() {
                   {user ? BRANCH_LABELS[user.branchOfService] : "Veteran"}{" "}
                   command center
                 </p>
-                <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
+                <h1 className="mt-1 break-words text-2xl font-bold tracking-tight sm:text-3xl">
                   Welcome back{user?.firstName ? `, ${user.firstName}` : ""}.
                 </h1>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75 sm:text-base">
@@ -303,13 +310,13 @@ function DashboardContent() {
 
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="rounded-lg border border-white/15 bg-white/10 p-4">
-                <p className="text-white/65">Profile ZIP</p>
+                <p className="text-white/85">Profile ZIP</p>
                 <p className="mt-1 text-2xl font-bold">
                   {user?.zipCode ?? "Not set"}
                 </p>
               </div>
               <div className="rounded-lg border border-white/15 bg-white/10 p-4">
-                <p className="text-white/65">Saved</p>
+                <p className="text-white/85">Saved</p>
                 <p className="mt-1 text-2xl font-bold">
                   {isLoadingSaved
                     ? "-"
@@ -352,10 +359,11 @@ function DashboardContent() {
                 Start with location, need, and range
               </h2>
             </div>
-            <Link href="/resources">
-              <Button variant="ghost" size="sm">
-                Advanced search
-              </Button>
+            <Link
+              href="/resources"
+              className={buttonStyles({ variant: "ghost", size: "sm" })}
+            >
+              Advanced search
             </Link>
           </div>
 
@@ -366,7 +374,7 @@ function DashboardContent() {
           )}
           <form
             onSubmit={handleSearch}
-            className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-[140px_minmax(0,1fr)_minmax(0,1fr)_150px_130px]"
+            className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[140px_minmax(0,1fr)_minmax(0,1fr)_150px_130px]"
           >
             <Input
               label="ZIP"
@@ -412,9 +420,9 @@ function DashboardContent() {
           </form>
         </section>
 
-        <section className="grid gap-4 py-5 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="grid grid-cols-1 gap-4 py-5 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">
+            <p className="text-sm font-medium text-slate-600">
               Saved resources
             </p>
             <p className="mt-2 text-2xl font-bold text-slate-900">
@@ -426,7 +434,7 @@ function DashboardContent() {
             </p>
           </div>
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">
+            <p className="text-sm font-medium text-slate-600">
               Latest saves (up to 3)
             </p>
             <p className="mt-2 text-2xl font-bold text-slate-900">
@@ -438,8 +446,8 @@ function DashboardContent() {
             </p>
           </div>
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">Top category</p>
-            <p className="mt-2 truncate text-2xl font-bold text-slate-900">
+            <p className="text-sm font-medium text-slate-600">Top category</p>
+            <p className="mt-2 break-words text-2xl font-bold text-slate-900">
               {isLoadingSaved
                 ? "-"
                 : error
@@ -450,7 +458,7 @@ function DashboardContent() {
             </p>
           </div>
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">
+            <p className="text-sm font-medium text-slate-600">
               Saved categories
             </p>
             <p className="mt-2 text-2xl font-bold text-slate-900">
@@ -463,18 +471,18 @@ function DashboardContent() {
           </div>
         </section>
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
             <div className="mb-4">
               <h2 className="text-xl font-bold text-slate-900">
                 Mission paths
               </h2>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-slate-600">
                 Open common searches with the category already selected.
               </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {searchPaths.map((path) => (
                 <Link
                   key={path.category}
@@ -491,13 +499,13 @@ function DashboardContent() {
                     {path.marker}
                   </span>
                   <span className="min-w-0">
-                    <span className="text-xs font-semibold text-slate-500">
+                    <span className="text-xs font-semibold text-slate-600">
                       {CATEGORY_LABELS[path.category]}
                     </span>
                     <span className="mt-1 block text-sm font-semibold text-slate-900">
                       {path.title}
                     </span>
-                    <span className="mt-1 block text-sm leading-5 text-slate-500">
+                    <span className="mt-1 block text-sm leading-5 text-slate-600">
                       {path.description}
                     </span>
                   </span>
@@ -506,7 +514,7 @@ function DashboardContent() {
             </div>
           </section>
 
-          <aside className="space-y-6">
+          <aside className="min-w-0 space-y-6">
             <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="text-lg font-bold text-slate-900">
                 Quick actions
@@ -521,7 +529,7 @@ function DashboardContent() {
                     <p className="text-sm font-semibold text-slate-900">
                       {action.label}
                     </p>
-                    <p className="mt-1 text-sm leading-5 text-slate-500">
+                    <p className="mt-1 text-sm leading-5 text-slate-600">
                       {action.detail}
                     </p>
                   </Link>
@@ -535,20 +543,25 @@ function DashboardContent() {
                   <h2 className="text-lg font-bold text-slate-900">
                     Continue where you left off
                   </h2>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="mt-1 text-sm text-slate-600">
                     Your latest saved resources.
                   </p>
                 </div>
-                <Link href="/saved">
-                  <Button variant="ghost" size="sm">
-                    Open
-                  </Button>
+                <Link
+                  href="/saved"
+                  className={buttonStyles({ variant: "ghost", size: "sm" })}
+                >
+                  Open
                 </Link>
               </div>
 
               {isLoadingSaved ? (
                 <div className="mt-5">
-                  <LoadingSpinner size="sm" message="Loading..." />
+                  <LoadingSpinner
+                    announce={false}
+                    size="sm"
+                    message="Loading..."
+                  />
                 </div>
               ) : error ? (
                 <p className="mt-5 text-sm text-slate-700">
@@ -560,7 +573,7 @@ function DashboardContent() {
                   <p className="text-sm font-medium text-slate-800">
                     Nothing saved yet
                   </p>
-                  <p className="mt-1 text-sm leading-6 text-slate-500">
+                  <p className="mt-1 text-sm leading-6 text-slate-600">
                     Search resources and save the ones you want to revisit.
                   </p>
                 </div>
@@ -571,10 +584,10 @@ function DashboardContent() {
                       key={resource.id}
                       className="border-t border-slate-100 pt-4 first:border-t-0 first:pt-0"
                     >
-                      <p className="line-clamp-2 text-sm font-semibold text-slate-900">
+                      <p className="break-words text-sm font-semibold text-slate-900">
                         {resource.name}
                       </p>
-                      <div className="mt-2 flex items-center justify-between gap-3 text-xs text-slate-500">
+                      <div className="mt-2 flex items-center justify-between gap-3 text-xs text-slate-600">
                         <span>{CATEGORY_LABELS[resource.category]}</span>
                         <span>{formatSavedDate(resource.savedAt)}</span>
                       </div>
@@ -586,7 +599,7 @@ function DashboardContent() {
           </aside>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 

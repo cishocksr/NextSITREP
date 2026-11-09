@@ -68,7 +68,7 @@ export function LoginForm() {
         Sign In
       </Button>
 
-      <p className="text-center text-sm text-slate-500">
+      <p className="text-center text-sm text-slate-600">
         Don&apos;t have an account?{" "}
         <Link
           href="/register"

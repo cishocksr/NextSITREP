@@ -63,7 +63,7 @@ describe("provider website links", () => {
       </>,
     );
     expect(
-      screen.queryByRole("link", { name: "Visit website" }),
+      screen.queryByRole("link", { name: /Visit website for Clinic/ }),
     ).not.toBeInTheDocument();
     expect(screen.getAllByText("Clinic")).toHaveLength(2);
   });
@@ -73,9 +73,8 @@ describe("provider website links", () => {
         resource={{ ...resource, website: "https://example.test/path" }}
       />,
     );
-    expect(screen.getByRole("link", { name: "Visit website" })).toHaveAttribute(
-      "href",
-      "https://example.test/path",
-    );
+    expect(
+      screen.getByRole("link", { name: /Visit website for Clinic/ }),
+    ).toHaveAttribute("href", "https://example.test/path");
   });
 });

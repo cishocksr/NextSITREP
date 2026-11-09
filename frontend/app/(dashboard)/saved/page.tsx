@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { SavedResourceCard } from "@/components/resources/SavedResourceCard";
 import { Alert } from "@/components/ui/Alert";
-import { Button } from "@/components/ui/Button";
+import { Button, buttonStyles } from "@/components/ui/Button";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { resourceApi } from "@/lib/api";
 import type { LoadState } from "@/lib/load-state";
@@ -16,6 +16,7 @@ function SavedContent() {
   const [load, setLoad] = useState<LoadState<SavedResourceResponse[]>>({
     status: "loading",
   });
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const request = useRef<AbortController | null>(null);
   const resources = load.status === "success" ? load.data : [];
   const isLoading = load.status === "loading";
@@ -51,6 +52,9 @@ function SavedContent() {
   }, [loadSaved]);
 
   function handleRemoved(id: string) {
+    const focusedCard = document.activeElement?.closest("[data-resource-id]");
+    if (focusedCard?.getAttribute("data-resource-id") === id)
+      headingRef.current?.focus();
     setLoad((previous) =>
       previous.status === "success"
         ? { ...previous, data: previous.data.filter((item) => item.id !== id) }
@@ -87,10 +91,16 @@ function SavedContent() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap gap-4 items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Saved Resources</h1>
-          <p className="text-slate-500 mt-1">
+          <h1
+            ref={headingRef}
+            tabIndex={-1}
+            className="text-2xl font-bold text-slate-900"
+          >
+            Saved Resources
+          </h1>
+          <p className="text-slate-600 mt-1">
             {isLoading
               ? "Loading…"
               : error
@@ -98,14 +108,27 @@ function SavedContent() {
                 : `${resources.length} saved resource${resources.length !== 1 ? "s" : ""}`}
           </p>
         </div>
-        <Link href="/resources">
-          <Button variant="secondary" size="sm">
-            + Find More
-          </Button>
+        <Link
+          href="/resources"
+          className={buttonStyles({ variant: "secondary", size: "sm" })}
+        >
+          + Find More
         </Link>
       </div>
 
-      {isLoading && <LoadingSpinner message="Loading your saved resources…" />}
+      <output className="sr-only" aria-live="polite" aria-atomic="true">
+        {isLoading
+          ? "Loading saved resources."
+          : error
+            ? ""
+            : `Showing ${filtered.length} of ${resources.length} saved resources${activeCategory ? ` in ${CATEGORY_LABELS[activeCategory]}` : ""}.`}
+      </output>
+      {isLoading && (
+        <LoadingSpinner
+          announce={false}
+          message="Loading your saved resources…"
+        />
+      )}
 
       {error && !isLoading && (
         <div>
@@ -130,12 +153,12 @@ function SavedContent() {
           <h3 className="text-xl font-semibold text-slate-700 mb-2">
             No saved resources yet
           </h3>
-          <p className="text-slate-500 max-w-sm mx-auto mb-6">
+          <p className="text-slate-600 max-w-sm mx-auto mb-6">
             Search for VA facilities and services, then save the ones that are
             relevant to you.
           </p>
-          <Link href="/resources">
-            <Button>Search Resources</Button>
+          <Link href="/resources" className={buttonStyles({})}>
+            Search Resources
           </Link>
         </div>
       )}
@@ -146,9 +169,10 @@ function SavedContent() {
           <div className="flex flex-wrap gap-2 mb-6">
             <button
               type="button"
+              aria-pressed={activeCategory === ""}
               onClick={() => setFilterCategory("")}
               className={[
-                "px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
+                "min-h-11 px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
                 activeCategory === ""
                   ? "bg-blue-600 text-white"
                   : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50",
@@ -162,11 +186,12 @@ function SavedContent() {
                 <button
                   key={cat}
                   type="button"
+                  aria-pressed={activeCategory === cat}
                   onClick={() =>
                     setFilterCategory(cat === activeCategory ? "" : cat)
                   }
                   className={[
-                    "px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
+                    "min-h-11 px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
                     activeCategory === cat
                       ? "bg-blue-600 text-white"
                       : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50",

@@ -23,7 +23,7 @@ export function Alert({
   return (
     <div
       className={`rounded-lg border px-4 py-3 text-sm ${styles[variant]}`}
-      role="alert"
+      role={variant === "error" ? "alert" : "status"}
     >
       <div className="flex items-start justify-between gap-2">
         <div>
@@ -34,7 +34,7 @@ export function Alert({
           <button
             type="button"
             onClick={onDismiss}
-            className="shrink-0 opacity-60 hover:opacity-100 transition-opacity"
+            className="min-h-11 min-w-11 shrink-0 rounded-lg focus-visible:outline-2 focus-visible:outline-current"
             aria-label="Dismiss"
           >
             ✕
