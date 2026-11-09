@@ -111,7 +111,7 @@ describe("same-origin API and CSRF transport", () => {
     await resourceApi.search({ zipCode: "12345", keyword: "health & care" });
 
     expect(fetchMock).toHaveBeenCalledExactlyOnceWith(
-      "/api/v1/resources/search?zipCode=12345&keyword=health+%26+care",
+      "/api/v1/resources/search?zipCode=12345&keyword=health+%26+care&radius=25",
       expect.objectContaining({ credentials: "include" }),
     );
   });
@@ -283,4 +283,28 @@ it("does not write under a changed session after a pending CSRF bootstrap", asyn
   finish(new Response(null, { status: 204 }));
   await rejection;
   expect(fetchMock).toHaveBeenCalledTimes(1);
+});
+
+it.each([0, -1, Infinity, 1.5, 101])(
+  "rejects invalid radius %s without sending a request",
+  async (radius) => {
+    vi.restoreAllMocks();
+    const fetchMock = vi.spyOn(globalThis, "fetch");
+    await expect(
+      resourceApi.search({ zipCode: "12345", radius }),
+    ).rejects.toThrow("radius");
+    expect(fetchMock).not.toHaveBeenCalled();
+  },
+);
+
+it("forwards the caller's cancellation signal for search and saved reads", async () => {
+  vi.restoreAllMocks();
+  const fetchMock = vi
+    .spyOn(globalThis, "fetch")
+    .mockImplementation(async () => jsonResponse([], { status: 200 }));
+  const controller = new AbortController();
+  await resourceApi.search({ zipCode: "12345", radius: 37 }, controller.signal);
+  await resourceApi.getSaved(controller.signal);
+  for (const [, options] of fetchMock.mock.calls)
+    expect(options?.signal).toBe(controller.signal);
 });

@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { normalizeSearch, SEARCH_RADII } from "@/lib/search";
 import type { ResourceCategory, ResourceSearchParams } from "@/lib/types";
 import { CATEGORY_LABELS } from "@/lib/types";
 
@@ -23,13 +25,6 @@ const categoryOptions = [
   })),
 ];
 
-const radiusOptions = [
-  { value: "10", label: "10 miles" },
-  { value: "25", label: "25 miles" },
-  { value: "50", label: "50 miles" },
-  { value: "100", label: "100 miles" },
-];
-
 export function ResourceFilters({
   defaultZip = "",
   defaultCategory = "",
@@ -38,6 +33,7 @@ export function ResourceFilters({
   onSearch,
   isLoading = false,
 }: ResourceFiltersProps) {
+  const [error, setError] = useState<string | null>(null);
   const [zipCode, setZipCode] = useState(defaultZip);
   const [category, setCategory] = useState<ResourceCategory | "">(
     defaultCategory,
@@ -63,20 +59,34 @@ export function ResourceFilters({
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!zipCode || zipCode.length !== 5) return;
-    onSearch({
-      zipCode,
-      category: category || undefined,
-      keyword: keyword || undefined,
-      radius: Number(radius),
-    });
+    setError(null);
+    try {
+      onSearch(normalizeSearch({ zipCode, category, keyword, radius }));
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Review your search filters.",
+      );
+    }
   }
+
+  const radii = Array.from(
+    new Set<number>([...SEARCH_RADII, defaultRadius]),
+  ).sort((a, b) => a - b);
+  const radiusOptions = radii.map((value) => ({
+    value: String(value),
+    label: `${value} miles`,
+  }));
 
   return (
     <form
       onSubmit={handleSubmit}
       className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5"
     >
+      {error && (
+        <div className="mb-4">
+          <Alert variant="error" message={error} />
+        </div>
+      )}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         <Input
           label="Zip code"
