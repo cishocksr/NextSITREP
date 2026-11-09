@@ -1,10 +1,10 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuth } from "@/context/AuthContext";
 import { resourceApi } from "@/lib/api";
 import { getMockRouter } from "@/test/next-navigation";
-import { savedResource } from "@/test/resource-fixtures";
+import { deferred, savedResource } from "@/test/resource-fixtures";
 import DashboardPage from "./dashboard/page";
 import SavedPage from "./saved/page";
 
@@ -100,6 +100,42 @@ describe("saved resource recovery", () => {
       screen.getByRole("heading", { name: "Saved Resources" }),
     ).toHaveFocus();
     expect(resourceApi.unsave).toHaveBeenCalledWith("saved-1");
+  });
+
+  it("preserves the dashboard search draft when saved resources finish loading", async () => {
+    const pending = deferred<import("@/lib/types").SavedResourceResponse[]>();
+    vi.mocked(resourceApi.getSaved).mockReturnValueOnce(pending.promise);
+    render(<DashboardPage />);
+    await userEvent.clear(screen.getByLabelText("ZIP"));
+    await userEvent.type(screen.getByLabelText("ZIP"), "90210");
+    await userEvent.type(screen.getByLabelText("Keyword"), "counseling");
+    await userEvent.selectOptions(
+      screen.getByLabelText("Category"),
+      "HEALTHCARE",
+    );
+    await userEvent.selectOptions(screen.getByLabelText("Radius"), "50");
+    const records = [0, 1, 2, 3].map((index) =>
+      savedResource({
+        id: `saved-${index}`,
+        name: `Clinic ${index}`,
+        savedAt: `2026-11-0${index + 1}T12:00:00Z`,
+      }),
+    );
+    await act(async () => pending.resolve(records));
+    expect(screen.getByLabelText("ZIP")).toHaveValue("90210");
+    expect(screen.getByLabelText("Keyword")).toHaveValue("counseling");
+    expect(screen.getByLabelText("Category")).toHaveValue("HEALTHCARE");
+    expect(screen.getByLabelText("Radius")).toHaveValue("50");
+    expect(screen.queryByText("Clinic 0")).not.toBeInTheDocument();
+    expect(
+      screen.getAllByText(/^Clinic [1-3]$/).map((item) => item.textContent),
+    ).toEqual(["Clinic 3", "Clinic 2", "Clinic 1"]);
+    expect(records.map((item) => item.name)).toEqual([
+      "Clinic 0",
+      "Clinic 1",
+      "Clinic 2",
+      "Clinic 3",
+    ]);
   });
 
   it("does not present failed dashboard counts as zero, None, or an empty library", async () => {
