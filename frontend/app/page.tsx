@@ -1,55 +1,67 @@
 import Link from "next/link";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { buttonStyles } from "@/components/ui/Button";
+import { resourceGuides } from "@/lib/resource-guides";
+import { organizationGraph, pageMetadata, SITE_DESCRIPTION } from "@/lib/seo";
 
 const features = [
   {
     icon: "🏥",
-    title: "Healthcare",
+    title: "VA healthcare facilities",
     description:
-      "Locate VA medical centers, community clinics, and vet centers near you.",
+      "Find VA medical centers and clinics, then confirm services directly with the location.",
+    href: "/resources/healthcare",
   },
   {
-    icon: "🎓",
-    title: "Education",
+    icon: "📋",
+    title: "VA benefits offices",
     description:
-      "Discover GI Bill benefits, vocational training, and education resources.",
+      "Locate benefits offices and official starting points for disability, education, housing, and financial questions.",
+    href: "/resources/benefits",
   },
   {
-    icon: "💰",
-    title: "Financial Assistance",
+    icon: "🤝",
+    title: "Vet Centers",
     description:
-      "Find disability compensation, pension programs, and emergency funds.",
-  },
-  {
-    icon: "🏠",
-    title: "Housing",
-    description:
-      "Access VA home loans, homeless prevention services, and transitional housing.",
+      "Locate nearby Vet Centers and ask the provider about counseling services and eligibility.",
+    href: "/resources/mental-health",
   },
 ];
+
+export function generateMetadata() {
+  return pageMetadata(
+    "Find VA Facilities and Veteran Resources Near You",
+    SITE_DESCRIPTION,
+    "/",
+  );
+}
 
 export default function LandingPage() {
   return (
     <div className="flex flex-col">
+      <JsonLd data={organizationGraph()} />
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white">
-        <div className="absolute inset-0 opacity-10 pointer-events-none select-none">
+      <section className="relative overflow-hidden bg-linear-to-br from-slate-900 via-blue-950 to-slate-900 text-white">
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 opacity-10 pointer-events-none select-none"
+        >
           <div className="absolute top-10 left-1/4 text-9xl">⭐</div>
           <div className="absolute bottom-10 right-1/4 text-9xl">⭐</div>
         </div>
         <div className="relative mx-auto max-w-5xl px-6 py-24 sm:py-32 text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-blue-800/50 px-4 py-1.5 text-sm font-medium text-blue-200 ring-1 ring-blue-700/50">
-            <span>🇺🇸</span>
+            <span aria-hidden="true">🇺🇸</span>
             <span>Built for those who served</span>
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-            Find Veterans <span className="text-blue-400">Resources</span> Near
-            You
+            Find VA Facilities and Veteran{" "}
+            <span className="text-blue-400">Resources</span> Near You
           </h1>
           <p className="mx-auto max-w-2xl text-lg sm:text-xl text-slate-300 mb-10">
-            Veteran FOB helps you quickly discover healthcare, benefits,
-            education, and housing resources from the VA and other trusted
-            providers, all in one place.
+            NextSITREP helps U.S. military veterans find nearby VA healthcare
+            facilities, benefits offices, and Vet Centers. Create a free account
+            to save locations and personal notes.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
@@ -80,21 +92,30 @@ export default function LandingPage() {
       <section className="mx-auto max-w-6xl px-6 py-20">
         <div className="text-center mb-14">
           <h2 className="text-3xl font-bold text-slate-900 mb-3">
-            Everything You Need, In One Place
+            What You Can Find
           </h2>
           <p className="text-slate-600 max-w-xl mx-auto">
-            Search by zip code and instantly see VA facilities and resources
-            near you, then save the ones that matter.
+            Search by U.S. ZIP code and distance to find VA facility listings.
+            Availability and services must be verified with providers.
           </p>
         </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid sm:grid-cols-3 gap-6">
           {features.map((f) => (
             <div
               key={f.title}
               className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow"
             >
-              <div className="text-3xl mb-3">{f.icon}</div>
-              <h3 className="font-semibold text-slate-900 mb-2">{f.title}</h3>
+              <div aria-hidden="true" className="text-3xl mb-3">
+                {f.icon}
+              </div>
+              <h3 className="font-semibold text-slate-900 mb-2">
+                <Link
+                  href={f.href}
+                  className="text-blue-700 underline underline-offset-4"
+                >
+                  {f.title}
+                </Link>
+              </h3>
               <p className="text-sm text-slate-600 leading-relaxed">
                 {f.description}
               </p>
@@ -121,7 +142,7 @@ export default function LandingPage() {
               {
                 step: "2",
                 title: "Search for resources",
-                desc: "Filter by category, keyword, or distance to find what you need.",
+                desc: "Filter facility listings by category, name or classification keyword, and distance.",
               },
               {
                 step: "3",
@@ -141,13 +162,56 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section className="mx-auto max-w-5xl px-6 py-16">
+        <h2 className="text-3xl font-bold text-slate-900">
+          Explore veteran resource guides
+        </h2>
+        <p className="mt-4 text-slate-600">
+          Read official starting points and practical next steps without an
+          account.
+        </p>
+        <ul className="mt-6 grid gap-4 sm:grid-cols-2">
+          {resourceGuides.map((guide) => (
+            <li key={guide.slug}>
+              <Link
+                href={`/resources/${guide.slug}`}
+                className="font-semibold text-blue-700 underline underline-offset-4"
+              >
+                {guide.title}
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <h2 className="mt-12 text-3xl font-bold text-slate-900">
+          About NextSITREP
+        </h2>
+        <p className="mt-4 leading-7 text-slate-600">
+          NextSITREP is an independent informational platform and is not
+          affiliated with the U.S. Department of Veterans Affairs. Our current
+          search uses the VA Facilities API. It does not cover all community
+          organizations, grants, jobs, or available housing, and results may be
+          limited.
+        </p>
+        <p className="mt-3 leading-7 text-slate-600">
+          Education, housing, and financial-assistance filters locate VA
+          benefits offices rather than individual programs. Contact providers to
+          verify services, eligibility, costs, and geographic availability.{" "}
+          <Link href="/disclaimer" className="text-blue-700 underline">
+            Read our disclaimer
+          </Link>
+          .
+        </p>
+      </section>
+
       {/* CTA */}
       <section className="mx-auto max-w-3xl px-6 py-20 text-center">
         <h2 className="text-3xl font-bold text-slate-900 mb-4">
-          Ready to find your benefits?
+          Ready to organize your resource search?
         </h2>
         <p className="text-slate-600 mb-8">
-          It&apos;s free. No spam. Just resources for veterans, by veterans.
+          NextSITREP accounts and public guides are free. Provider services may
+          have costs or eligibility requirements; confirm directly before
+          relying on a listing.
         </p>
         <Link href="/register" className={buttonStyles({ size: "lg" })}>
           Get Started Free

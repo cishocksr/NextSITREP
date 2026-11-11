@@ -13,7 +13,7 @@
 	<artifactId>backend</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>veterans-connect</name>
-	<description>Spring Boot API for the VeteransConnect resource directory</description>
+	<description>Spring Boot API for the NextSITREP resource directory</description>
 	<url/>
 	<licenses>
 		<license/>

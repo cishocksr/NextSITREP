@@ -150,9 +150,9 @@ function SavedContent() {
       {load.status === "success" && resources.length === 0 && (
         <div className="text-center py-20">
           <div className="text-6xl mb-5">📌</div>
-          <h3 className="text-xl font-semibold text-slate-700 mb-2">
+          <h2 className="text-xl font-semibold text-slate-700 mb-2">
             No saved resources yet
-          </h3>
+          </h2>
           <p className="text-slate-600 max-w-sm mx-auto mb-6">
             Search for VA facilities and services, then save the ones that are
             relevant to you.

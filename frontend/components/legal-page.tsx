@@ -20,8 +20,8 @@ export default function LegalPage({
   return (
     <div className="mx-auto max-w-4xl px-6 py-12">
       <header className="mb-10 border-b border-slate-200 pb-6">
-        <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">
-          Veteran FOB
+        <p className="text-sm font-semibold tracking-wide text-blue-700">
+          NextSITREP Legal
         </p>
 
         <h1 className="mt-2 text-4xl font-bold text-slate-900">{title}</h1>

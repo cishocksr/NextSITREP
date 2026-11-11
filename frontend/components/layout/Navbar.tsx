@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { BRANCH_LABELS } from "@/lib/types";
 
 const navLinks = [
+  { href: "/guides", label: "Resource guides" },
   { href: "/dashboard", label: "Dashboard" },
   { href: "/resources", label: "Find Resources" },
   { href: "/saved", label: "Saved" },
@@ -28,17 +29,24 @@ export function Navbar() {
             href={isAuthenticated ? "/dashboard" : "/"}
             className="flex items-center gap-2 shrink-0"
           >
-            <span className="text-xl" aria-hidden="true">
-              🇺🇸
-            </span>
             <span className="text-lg font-bold text-slate-900 tracking-tight">
-              Veteran <span className="text-blue-600">FOB</span>
+              Next<span className="text-blue-600">SITREP</span>
             </span>
           </Link>
 
+          {!isAuthenticated && (
+            <Link
+              href="/guides"
+              aria-current={pathname === "/guides" ? "page" : undefined}
+              className="inline-flex min-h-11 items-center rounded-md px-3 py-1.5 text-sm font-medium text-blue-700 hover:underline"
+            >
+              Resource guides
+            </Link>
+          )}
+
           {/* Nav links (authenticated) */}
           {isAuthenticated && (
-            <div className="hidden sm:flex items-center gap-1">
+            <div className="hidden lg:flex items-center gap-1">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
@@ -61,7 +69,7 @@ export function Navbar() {
           <div className="ml-auto flex shrink-0 items-center gap-2">
             {isAuthenticated && user ? (
               <>
-                <div className="hidden md:block max-w-40 break-words text-right">
+                <div className="hidden md:block max-w-40 [overflow-wrap:anywhere] text-right">
                   <p className="text-sm font-medium text-slate-900 leading-none">
                     {user.firstName} {user.lastName}
                   </p>
@@ -94,7 +102,7 @@ export function Navbar() {
 
         {/* Mobile nav links */}
         {isAuthenticated && (
-          <div className="flex flex-wrap sm:hidden gap-1 pb-2">
+          <div className="flex flex-wrap lg:hidden gap-1 pb-2">
             {navLinks.map((link) => (
               <Link
                 key={link.href}

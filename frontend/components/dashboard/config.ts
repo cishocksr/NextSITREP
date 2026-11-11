@@ -10,28 +10,28 @@ export const searchPaths: Array<{
   {
     category: "HEALTHCARE",
     title: "Healthcare and mental health",
-    description: "VA clinics, counseling, urgent support.",
+    description: "Locate VA medical centers and clinics.",
     href: "/resources?category=HEALTHCARE",
     marker: "HC",
   },
   {
     category: "BENEFITS",
     title: "Benefits and claims",
-    description: "Compensation, pensions, claim help.",
+    description: "Locate VA benefits offices for your questions.",
     href: "/resources?category=BENEFITS",
     marker: "VA",
   },
   {
     category: "HOUSING",
     title: "Housing support",
-    description: "Home loans, shelters, transition services.",
+    description: "Locate benefits offices for housing questions.",
     href: "/resources?category=HOUSING",
     marker: "HS",
   },
   {
     category: "EDUCATION",
     title: "Education and training",
-    description: "GI Bill, schools, certifications.",
+    description: "Locate benefits offices for education questions.",
     href: "/resources?category=EDUCATION",
     marker: "ED",
   },
@@ -45,7 +45,7 @@ export const quickActions = [
   },
   {
     label: "Nearby vet centers",
-    detail: "Jump to in-person community support.",
+    detail: "Locate Vet Centers; verify services with the provider.",
     href: "/resources?category=VET_CENTER",
   },
   {

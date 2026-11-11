@@ -1,6 +1,6 @@
-# Contributing to Veterans Connection
+# Contributing to NextSITREP
 
-Thank you for your interest in contributing to VetConnect! This platform helps veterans access essential resources, and your contributions make a real difference.
+Thank you for your interest in contributing to NextSITREP! This platform helps veterans access essential resources, and your contributions make a real difference.
 
 ## 🎯 Code of Conduct
 

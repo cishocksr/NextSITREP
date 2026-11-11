@@ -4,16 +4,19 @@ import { Footer } from "@/components/layout/Footer";
 import { Navbar } from "@/components/layout/Navbar";
 import { SessionNotice } from "@/components/layout/SessionNotice";
 import { AuthProvider } from "@/context/AuthContext";
+import { BRAND, SITE_DESCRIPTION, siteSettings } from "@/lib/seo";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: {
-    default: "Veteran FOB",
-    template: "%s | Veteran FOB",
-  },
-  description:
-    "Find veterans resources near you, including healthcare, benefits, education, housing, and more.",
-};
+export function generateMetadata(): Metadata {
+  const { origin, indexing } = siteSettings();
+  return {
+    metadataBase: new URL(origin),
+    applicationName: BRAND,
+    title: { default: BRAND, template: `%s | ${BRAND}` },
+    description: SITE_DESCRIPTION,
+    robots: { index: indexing, follow: true },
+  };
+}
 
 export default async function RootLayout({
   children,
@@ -29,7 +32,7 @@ export default async function RootLayout({
           <div className="flex min-h-screen flex-col">
             <a
               href="#main-content"
-              className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-white focus:p-4 focus:text-blue-700 focus:outline-2"
+              className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-100 focus:rounded-lg focus:bg-white focus:p-4 focus:text-blue-700 focus:outline-2"
             >
               Skip to main content
             </a>

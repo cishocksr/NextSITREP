@@ -311,6 +311,9 @@ test(
         {
           API_PROXY_TARGET: `http://127.0.0.1:${upstream.address().port}`,
           NODE_ENV: "production",
+          SITE_URL: "https://nextsitrep.org",
+          SITE_INDEXING_ENABLED: "false",
+          NEXTSITREP_CONTACT_EMAIL: "help@nextsitrep.org",
         },
       );
       try {
@@ -326,6 +329,9 @@ test(
         source,
         {
           NODE_ENV: "production",
+          SITE_URL: "https://nextsitrep.org",
+          SITE_INDEXING_ENABLED: "false",
+          NEXTSITREP_CONTACT_EMAIL: "help@nextsitrep.org",
           HTTPS_DEPLOYMENT: "false",
           API_PROXY_TARGET: `http://127.0.0.1:${upstream.address().port}`,
         },
@@ -444,11 +450,11 @@ test(
         });
         await delay(100);
         const dimensions = await evaluate(
-          "({viewport: document.documentElement.clientWidth, content: document.documentElement.scrollWidth})",
+          "({viewport: document.documentElement.clientWidth, content: document.documentElement.scrollWidth, scrollX, bodyWidth: document.body.clientWidth})",
         );
         assert.ok(
           dimensions.content <= dimensions.viewport + 1,
-          `Horizontal overflow at ${width}px: ${JSON.stringify(dimensions)}; ${await evaluate('JSON.stringify(Array.from(document.querySelectorAll("main *")).filter(el => el.getBoundingClientRect().right > innerWidth + 1).slice(0, 8).map(el => ({tag: el.tagName, class: el.className, right: el.getBoundingClientRect().right})))')}`,
+          `Horizontal overflow at ${width}px: ${JSON.stringify(dimensions)}; ${await evaluate('JSON.stringify(Array.from(document.querySelectorAll("body *")).filter(el => el.getBoundingClientRect().right + scrollX > innerWidth + 1 || el.scrollWidth > el.clientWidth + 1).slice(0, 8).map(el => ({tag: el.tagName, class: el.className, right: el.getBoundingClientRect().right, left: el.getBoundingClientRect().left, client: el.clientWidth, scroll: el.scrollWidth, position: getComputedStyle(el).position})))')}`,
         );
       };
       const fill = async (selector, text) => {
@@ -459,7 +465,7 @@ test(
       };
       const activate = async (selector) => {
         const point = await evaluate(
-          `(() => { const element = document.querySelector(${JSON.stringify(selector)}); element.focus(); element.scrollIntoView({block: "center", behavior: "instant"}); const bounds = element.getBoundingClientRect(); return {x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2}; })()`,
+          `(async () => { const element = Array.from(document.querySelectorAll(${JSON.stringify(selector)})).find(candidate => candidate.getClientRects().length > 0); if (!element) throw new Error("No visible click target"); element.focus({preventScroll: true}); element.scrollIntoView({block: "center", behavior: "instant"}); await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); const bounds = element.getBoundingClientRect(); const point = {x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2}; const hit = document.elementFromPoint(point.x, point.y); if (!hit || !element.contains(hit)) throw new Error("Click target is obscured: " + JSON.stringify({selector: ${JSON.stringify(selector)}, point, hit: hit?.outerHTML.slice(0, 300)})); return point; })()`,
         );
         await cdp.send("Input.dispatchMouseEvent", {
           type: "mousePressed",
@@ -881,7 +887,21 @@ test(
         "registration",
       );
       for (const width of [320, 768, 1280]) await reflow(width);
-      for (const path of ["/", "/login", "/privacy", "/terms", "/disclaimer"]) {
+      for (const path of [
+        "/",
+        "/login",
+        "/privacy",
+        "/terms",
+        "/disclaimer",
+        "/guides",
+        "/resources/healthcare",
+        "/resources/benefits",
+        "/resources/mental-health",
+        "/resources/housing",
+        "/resources/financial-assistance",
+        "/resources/education",
+        "/resources/employment",
+      ]) {
         await navigate(path);
         await waitDom(
           '!!Array.from(document.querySelectorAll("nav a")).find(link => link.getAttribute("href") === "/login")',
@@ -892,6 +912,18 @@ test(
           0,
         );
         for (const width of [320, 768, 1280]) await reflow(width);
+        if (path.startsWith("/resources/")) {
+          assert.ok(
+            await evaluate(
+              `!!document.querySelector('nav[aria-label="Breadcrumb"]')`,
+            ),
+          );
+          assert.ok(
+            await evaluate(
+              `!!document.querySelector('script[type="application/ld+json"]')`,
+            ),
+          );
+        }
       }
       t.diagnostic(
         `Chrome checks passed: focus containment/restoration, inert background, clean/dirty/pending Escape, skip link, semantics, reduced motion, computed contrast, and 320/768/1280px reflow with long content. Helper contrast ${contrast(colors.helper, colors.white).toFixed(2)}:1.`,
@@ -904,7 +936,12 @@ test(
       upstream.closeAllConnections();
       if (upstream.listening)
         await new Promise((resolve) => upstream.close(resolve));
-      await rm(workspace, { recursive: true, force: true });
+      await rm(workspace, {
+        recursive: true,
+        force: true,
+        maxRetries: 5,
+        retryDelay: 100,
+      });
     }
   },
 );

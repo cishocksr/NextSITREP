@@ -28,7 +28,7 @@ describe("Navbar", () => {
   it("renders guest navigation when the user is signed out", () => {
     render(<Navbar />);
 
-    expect(screen.getByRole("link", { name: /veteran fob/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "NextSITREP" })).toHaveAttribute(
       "href",
       "/",
     );
@@ -65,7 +65,7 @@ describe("Navbar", () => {
 
     render(<Navbar />);
 
-    expect(screen.getByRole("link", { name: /veteran fob/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "NextSITREP" })).toHaveAttribute(
       "href",
       "/dashboard",
     );

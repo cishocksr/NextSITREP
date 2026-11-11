@@ -1,19 +1,28 @@
 import LegalPage from "@/components/legal-page";
+import { pageMetadata } from "@/lib/seo";
+
+export function generateMetadata() {
+  return pageMetadata(
+    "Disclaimer",
+    "Understand NextSITREP’s independent status, informational purpose, and the need to verify details with official providers.",
+    "/disclaimer",
+  );
+}
 
 export default function DisclaimerPage() {
   return (
     <LegalPage
       title="Disclaimer"
       lastUpdated="June 7, 2026"
-      intro="Veteran FOB is an informational platform designed to help users discover veterans-related resources. It is not a substitute for official guidance or professional advice."
+      intro="NextSITREP is an informational platform designed to help users discover veterans-related resources. It is not a substitute for official guidance or professional advice."
       sections={[
         {
           title: "Not an Official Government Service",
-          body: "Veteran FOB is not operated by, endorsed by, sponsored by, or officially affiliated with the U.S. Department of Veterans Affairs, the federal government, state governments, or veterans service organizations unless explicitly stated.",
+          body: "NextSITREP is not operated by, endorsed by, sponsored by, or officially affiliated with the U.S. Department of Veterans Affairs, the federal government, state governments, or veterans service organizations unless explicitly stated.",
         },
         {
           title: "Not Professional Advice",
-          body: "Information provided through Veteran FOB is for informational purposes only and should not be considered medical, legal, financial, benefits, counseling, or case management advice.",
+          body: "Information provided through NextSITREP is for informational purposes only and should not be considered medical, legal, financial, benefits, counseling, or case management advice.",
         },
         {
           title: "Verify Information Independently",
@@ -32,7 +41,7 @@ export default function DisclaimerPage() {
         },
         {
           title: "Emergency Warning",
-          body: "Veteran FOB is not an emergency service. If you are experiencing an emergency, call 911 immediately. For veteran crisis support, call 988 and press 1, text 838255, or contact the Veterans Crisis Line.",
+          body: "NextSITREP is not an emergency service. If you are experiencing an emergency, call 911 immediately. For veteran crisis support, call 988 and press 1, text 838255, or contact the Veterans Crisis Line.",
         },
       ]}
     />

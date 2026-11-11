@@ -1,7 +1,7 @@
 # NextSITREP
 
-[![CI Pipeline](https://github.com/cishocksr/veterans-connect/actions/workflows/ci.yml/badge.svg)](https://github.com/cishocksr/veterans-connect/actions/workflows/ci.yml)
-[![Dependency Check](https://github.com/cishocksr/veterans-connect/actions/workflows/dependency-check.yml/badge.svg)](https://github.com/cishocksr/veterans-connect/actions/workflows/dependency-check.yml)
+[![CI Pipeline](https://github.com/cishocksr/NextSITREP/actions/workflows/ci.yml/badge.svg)](https://github.com/cishocksr/NextSITREP/actions/workflows/ci.yml)
+[![Dependency Check](https://github.com/cishocksr/NextSITREP/actions/workflows/dependency-check.yml/badge.svg)](https://github.com/cishocksr/NextSITREP/actions/workflows/dependency-check.yml)
 
 NextSITREP is a full-stack web application for helping U.S. military veterans find, save, and organize nearby resources for healthcare, benefits, education, housing, employment, and related support.
 
@@ -50,7 +50,7 @@ This repository is an active learning and portfolio project. It is built as a re
 ## Project Structure
 
 ```text
-veterans-connect/
+NextSITREP/
 ├── backend/              # Spring Boot API
 │   ├── src/main/java/    # Application source
 │   ├── src/main/resources/
@@ -249,3 +249,14 @@ Resource routes:
 - Do not commit `.env`, `.env.local`, API keys, JWT secrets, database credentials, or production domain settings.
 - The default values in tracked example files are placeholders for local development.
 - The project currently has no tracked license file; add one before advertising a specific open-source license.
+
+## NextSITREP public identity and launch
+
+Public branding uses **NextSITREP**. The proposed canonical domain is
+`https://nextsitrep.org`; `.com` redirect behavior still requires deployment
+verification. Public resource guides do not require an account. Personalized
+facility search, saves, and notes retain existing authentication protections.
+See [frontend launch settings](frontend/README.md#branding-public-guides-and-search-indexing)
+for the default-off indexing switch, private contact configuration, curated
+sitemap, and canonical-host launch checks. Runtime database/package/container
+identifiers remain stable and are not public brand labels.
