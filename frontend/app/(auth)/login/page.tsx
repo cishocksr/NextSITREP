@@ -1,9 +1,12 @@
-import type { Metadata } from "next";
 import { LoginForm } from "@/components/auth/LoginForm";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Sign In",
-};
+export function generateMetadata() {
+  return pageMetadata(
+    "Sign In",
+    "Sign in to NextSITREP to find and save nearby VA facilities and manage your resource notes.",
+  );
+}
 
 export default function LoginPage() {
   return (
@@ -11,10 +14,12 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="text-4xl mb-3">🇺🇸</div>
+          <div className="text-4xl mb-3" aria-hidden="true">
+            🇺🇸
+          </div>
           <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
           <p className="text-slate-600 mt-1">
-            Sign in to your Veteran FOB account
+            Sign in to your NextSITREP account
           </p>
         </div>
 

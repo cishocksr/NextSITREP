@@ -1,9 +1,12 @@
-import type { Metadata } from "next";
 import { RegisterForm } from "@/components/auth/RegisterForm";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Create Account",
-};
+export function generateMetadata() {
+  return pageMetadata(
+    "Create Account",
+    "Create a free NextSITREP account to save VA facilities and organize resource notes.",
+  );
+}
 
 export default function RegisterPage() {
   return (
@@ -11,7 +14,9 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="text-4xl mb-3">🇺🇸</div>
+          <div className="text-4xl mb-3" aria-hidden="true">
+            🇺🇸
+          </div>
           <h1 className="text-2xl font-bold text-slate-900">
             Create your account
           </h1>

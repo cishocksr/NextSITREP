@@ -113,9 +113,16 @@ function ResourcesContent() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">Find Resources</h1>
         <p className="text-slate-600 mt-1">
-          Search VA facilities and services near you
+          Search nearby VA healthcare facilities, benefits offices, and Vet
+          Centers.
         </p>
       </div>
+
+      <p className="mb-6 text-sm leading-6 text-slate-600">
+        Education, housing, and financial-assistance categories locate benefits
+        offices, not individual programs. Results may be limited; verify
+        services, eligibility, costs, and availability with the provider.
+      </p>
 
       {/* Filters */}
       <div className="mb-8">
@@ -137,6 +144,7 @@ function ResourcesContent() {
             ? `${results.length} resources found near ${snapshot.params.zipCode}.`
             : ""}
       </output>
+      <h2 className="sr-only">Search results</h2>
       {/* Results */}
       {isLoading && (
         <LoadingSpinner
@@ -185,9 +193,9 @@ function ResourcesContent() {
           {results.length === 0 ? (
             <div className="text-center py-16">
               <div className="text-5xl mb-4">🔍</div>
-              <h3 className="text-lg font-medium text-slate-700 mb-2">
+              <h2 className="text-lg font-medium text-slate-700 mb-2">
                 No results found
-              </h3>
+              </h2>
               <p className="text-slate-600 text-sm max-w-sm mx-auto">
                 Try expanding your radius, removing filters, or searching a
                 different zip code.
@@ -225,9 +233,9 @@ function ResourcesContent() {
       {!parsed.hasIntent && !isLoading && results === null && !error && (
         <div className="text-center py-20">
           <div className="text-6xl mb-5">🗺️</div>
-          <h3 className="text-xl font-semibold text-slate-700 mb-2">
+          <h2 className="text-xl font-semibold text-slate-700 mb-2">
             Ready to find resources?
-          </h3>
+          </h2>
           <p className="text-slate-600 max-w-sm mx-auto">
             Enter your zip code above and search for nearby VA facilities,
             healthcare, benefits, and more.

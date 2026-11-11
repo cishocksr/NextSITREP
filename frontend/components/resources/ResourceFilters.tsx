@@ -98,7 +98,7 @@ export function ResourceFilters({
           label="Keyword"
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
-          placeholder="e.g. mental health"
+          placeholder="Facility name or classification"
         />
 
         <Select

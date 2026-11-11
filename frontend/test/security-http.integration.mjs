@@ -46,11 +46,17 @@ async function stop({ child }) {
   }
 }
 
-async function start(cwd, flag) {
+async function start(cwd, flag, indexing = "false") {
   const process = launch(
     ["start", "--hostname", "127.0.0.1", "--port", "0"],
     cwd,
-    { NODE_ENV: "production", HTTPS_DEPLOYMENT: flag },
+    {
+      NODE_ENV: "production",
+      HTTPS_DEPLOYMENT: flag,
+      SITE_URL: "https://nextsitrep.org",
+      SITE_INDEXING_ENABLED: indexing,
+      NEXTSITREP_CONTACT_EMAIL: "",
+    },
   );
   try {
     for (let attempt = 0; attempt < 200; attempt++) {
@@ -223,6 +229,9 @@ test(
       const build = launch(["build", "--webpack"], source, {
         NODE_ENV: "production",
         API_PROXY_TARGET: `http://127.0.0.1:${upstream.address().port}`,
+        SITE_URL: "https://nextsitrep.org",
+        SITE_INDEXING_ENABLED: "false",
+        NEXTSITREP_CONTACT_EMAIL: "",
       });
       try {
         const [code] = await once(build.child, "exit");
@@ -270,6 +279,167 @@ test(
               ))
                 assets.add(asset);
             }
+            // Verify metadata in initial HTML, without hydration or a session.
+            const publicPaths = [
+              "/",
+              "/guides",
+              "/privacy",
+              "/terms",
+              "/disclaimer",
+              ...[
+                "healthcare",
+                "benefits",
+                "mental-health",
+                "housing",
+                "financial-assistance",
+                "education",
+                "employment",
+              ].map((slug) => `/resources/${slug}`),
+            ];
+            const titles = new Set();
+            const descriptions = new Set();
+            for (const path of publicPaths) {
+              const response = await request(server.origin + path);
+              assert.equal(response.status, 200, path);
+              assert.match(
+                response.headers.get("x-robots-tag") ?? "",
+                /noindex/,
+              );
+              const html = await response.text();
+              verifyDocument(response, html, flag, nonces);
+              const dom = new JSDOM(html);
+              try {
+                const document = dom.window.document;
+                const title = document.querySelector("title")?.textContent;
+                const description = document.querySelector(
+                  'meta[name="description"]',
+                )?.content;
+                assert.ok(title?.endsWith(" | NextSITREP"), title);
+                assert.ok(!titles.has(title), `Duplicate title ${title}`);
+                assert.ok(
+                  description && !descriptions.has(description),
+                  `Duplicate description ${path}`,
+                );
+                titles.add(title);
+                descriptions.add(description);
+                assert.equal(
+                  document.querySelector('link[rel="canonical"]')?.href,
+                  `https://nextsitrep.org${path}`,
+                );
+                assert.equal(
+                  new URL(
+                    document.querySelector('meta[property="og:url"]')?.content,
+                  ).href,
+                  `https://nextsitrep.org${path}`,
+                );
+                assert.equal(
+                  document.querySelector('meta[property="og:site_name"]')
+                    ?.content,
+                  "NextSITREP",
+                );
+                assert.match(
+                  document.querySelector('meta[name="robots"]')?.content ?? "",
+                  /noindex/,
+                );
+                assert.equal(document.querySelectorAll("h1").length, 1);
+                assert.equal(
+                  document
+                    .querySelector('nav[aria-label="Primary"] a')
+                    ?.textContent.trim(),
+                  "NextSITREP",
+                );
+                assert.match(
+                  document.querySelector('meta[name="viewport"]')?.content ??
+                    "",
+                  /width=device-width/,
+                );
+                if (path === "/" || path.startsWith("/resources/")) {
+                  const data = document.querySelector(
+                    'script[type="application/ld+json"]',
+                  );
+                  assert.ok(data, `Missing structured data ${path}`);
+                  const graph = JSON.parse(data.textContent);
+                  assert.equal(graph["@context"], "https://schema.org");
+                  if (path === "/")
+                    assert.deepEqual(
+                      graph["@graph"].map((item) => item["@type"]),
+                      ["Organization", "WebSite"],
+                    );
+                  else {
+                    assert.equal(graph["@type"], "BreadcrumbList");
+                    assert.equal(
+                      graph.itemListElement.at(-1).item,
+                      `https://nextsitrep.org${path}`,
+                    );
+                    assert.ok(
+                      document.querySelector('nav[aria-label="Breadcrumb"]'),
+                    );
+                    assert.ok(
+                      document.querySelector(
+                        'a[href^="https://www.va.gov/"], a[href^="https://www.vetcenter.va.gov/"]',
+                      ),
+                    );
+                  }
+                }
+              } finally {
+                dom.window.close();
+              }
+            }
+            for (const path of [
+              "/login",
+              "/register",
+              "/dashboard",
+              "/saved",
+              "/resources?zipCode=12345&keyword=private-interest",
+            ]) {
+              const response = await request(server.origin + path);
+              assert.equal(response.status, 200, path);
+              assert.match(
+                response.headers.get("x-robots-tag") ?? "",
+                /noindex/,
+              );
+              const dom = new JSDOM(await response.text());
+              try {
+                const document = dom.window.document;
+                assert.match(
+                  document.querySelector('meta[name="robots"]')?.content ?? "",
+                  /noindex/,
+                );
+                assert.ok(!document.querySelector('link[rel="canonical"]'));
+                assert.ok(
+                  !document
+                    .querySelector("title")
+                    .textContent.includes("private-interest"),
+                );
+              } finally {
+                dom.window.close();
+              }
+            }
+            const robots = await request(`${server.origin}/robots.txt`);
+            assert.equal(robots.status, 200);
+            assert.match(
+              robots.headers.get("content-type") ?? "",
+              /text\/plain/,
+            );
+            assert.match(await robots.text(), /Disallow: \/\s*$/);
+            const sitemap = await request(`${server.origin}/sitemap.xml`);
+            assert.equal(sitemap.status, 200);
+            assert.match(sitemap.headers.get("content-type") ?? "", /xml/);
+            assert.ok(!(await sitemap.text()).includes("<loc>"));
+            for (const path of ["/nextsitrep-social.png", "/apple-icon.png"]) {
+              const asset = await request(server.origin + path);
+              assert.equal(asset.status, 200, path);
+              assert.match(asset.headers.get("content-type") ?? "", /^image\//);
+              const size = await sharp(
+                Buffer.from(await asset.arrayBuffer()),
+              ).metadata();
+              assert.equal(size.width, path.includes("social") ? 1200 : 180);
+              assert.equal(size.height, path.includes("social") ? 630 : 180);
+            }
+            const unknown = await request(
+              `${server.origin}/resources/not-a-guide`,
+            );
+            assert.equal(unknown.status, 404);
             const failure = await request(`${server.origin}/t04-error`);
             assert.equal(failure.status, 500);
             verifyDocument(failure, await failure.text(), flag, nonces);
@@ -419,6 +589,62 @@ test(
           }
         });
       }
+      await t.test(
+        "explicit launch configuration changes sitemap at runtime",
+        async () => {
+          const server = await start(source, "true", "true");
+          try {
+            const response = await request(`${server.origin}/sitemap.xml`);
+            assert.equal(response.status, 200);
+            const dom = new JSDOM(await response.text(), {
+              contentType: "application/xml",
+            });
+            try {
+              const urls = [...dom.window.document.querySelectorAll("loc")].map(
+                (node) => node.textContent,
+              );
+              assert.equal(urls.length, 12);
+              assert.ok(
+                urls.includes("https://nextsitrep.org/resources/healthcare"),
+              );
+              assert.ok(
+                urls.every(
+                  (url) =>
+                    url.startsWith("https://nextsitrep.org/") &&
+                    !/[?#]/.test(url),
+                ),
+              );
+              assert.ok(!urls.includes("https://nextsitrep.org/resources"));
+            } finally {
+              dom.window.close();
+            }
+            const robots = await request(`${server.origin}/robots.txt`);
+            const text = await robots.text();
+            assert.match(text, /Allow: \//);
+            assert.match(text, /Disallow: \/api\//);
+            assert.match(
+              text,
+              /Sitemap: https:\/\/nextsitrep\.org\/sitemap\.xml/,
+            );
+            for (const path of ["/", "/login", "/resources/healthcare"]) {
+              const page = await request(server.origin + path);
+              const dom = new JSDOM(await page.text());
+              try {
+                assert.equal(
+                  dom.window.document
+                    .querySelector('meta[name="robots"]')
+                    ?.content.includes("noindex"),
+                  path === "/login",
+                );
+              } finally {
+                dom.window.close();
+              }
+            }
+          } finally {
+            await stop(server);
+          }
+        },
+      );
     } finally {
       upstream.closeAllConnections();
       await new Promise((resolve, reject) =>
