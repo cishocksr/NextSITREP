@@ -30,3 +30,12 @@ logs/
 
 # AI-generated docs and drafts
 
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfplan
+crash.log
+crash.*.log
+*.tfbackend
