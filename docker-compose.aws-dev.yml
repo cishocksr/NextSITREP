@@ -1,0 +1,137 @@
+name: nextsitrep-development
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    mem_limit: 768m
+    mem_reservation: 256m
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+    networks:
+      - database
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+    mem_limit: 1280m
+    mem_reservation: 512m
+    restart: unless-stopped
+
+    environment:
+      SPRING_PROFILES_ACTIVE: aws-dev
+
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:?POSTGRES_DB is required}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:?POSTGRES_USER is required}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_EXPIRATION: "3600000"
+      JWT_COOKIE_NAME: nextsitrep_session
+      JWT_COOKIE_SECURE: "true"
+      JWT_COOKIE_SAME_SITE: Lax
+
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS is required}
+
+      AUTH_RATE_LIMIT_MAX_ATTEMPTS: "10"
+      AUTH_RATE_LIMIT_WINDOW_MS: "900000"
+      AUTH_RATE_LIMIT_TRUST_FORWARDED_HEADERS: "false"
+
+      VA_API_BASE_URL: https://sandbox-api.va.gov
+      GEOCODING_USER_AGENT: "NextSITREP/1.0 (+https://nextsitrep.org)"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - -q
+        - -O
+        - /dev/null
+        - http://localhost:8080/actuator/health
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    networks:
+      - database
+      - application
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        API_PROXY_TARGET: http://backend:8080
+
+    restart: unless-stopped
+    mem_limit: 768m
+    mem_reservation: 256m
+
+    environment:
+      NODE_ENV: production
+      SITE_URL: https://dev.nextsitrep.org
+      SITE_INDEXING_ENABLED: "false"
+      NEXTSITREP_CONTACT_EMAIL: help@nextsitrep.org
+
+    depends_on:
+      backend:
+        condition: service_healthy
+
+    networks:
+      - application
+
+  cloudflared:
+    image: cloudflare/cloudflared:2025.11.1
+    restart: unless-stopped
+
+    command:
+      - tunnel
+      - --no-autoupdate
+      - run
+      - --token-file
+      - /run/secrets/cloudflare-token
+
+    volumes:
+      - /etc/nextsitrep/cloudflare-token:/run/secrets/cloudflare-token:ro
+
+    mem_limit: 128m
+    mem_reservation: 64m
+
+    depends_on:
+      frontend:
+        condition: service_started
+
+    networks:
+      - application
+volumes:
+  postgres_data:
+
+networks:
+  database:
+    internal: true
+
+  application:
+    driver: bridge
