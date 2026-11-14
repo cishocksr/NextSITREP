@@ -103,6 +103,29 @@ services:
     networks:
       - application
 
+  cloudflared:
+    image: cloudflare/cloudflared:2025.11.1
+    restart: unless-stopped
+
+    command:
+      - tunnel
+      - --no-autoupdate
+      - run
+      - --token-file
+      - /run/secrets/cloudflare-token
+
+    volumes:
+      - /etc/nextsitrep/cloudflare-token:/run/secrets/cloudflare-token:ro
+
+    mem_limit: 128m
+    mem_reservation: 64m
+
+    depends_on:
+      frontend:
+        condition: service_started
+
+    networks:
+      - application
 volumes:
   postgres_data:
 

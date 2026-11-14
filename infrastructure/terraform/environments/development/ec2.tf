@@ -10,7 +10,11 @@ resource "aws_instance" "development" {
 
   iam_instance_profile = aws_iam_instance_profile.development_ec2.name
 
-  associate_public_ip_address = false
+  depends_on = [
+    aws_iam_role_policy_attachment.development_ssm
+  ]
+
+  associate_public_ip_address = true
 
   metadata_options {
     http_endpoint = "enabled"

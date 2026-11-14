@@ -36,3 +36,27 @@ resource "aws_iam_instance_profile" "development_ec2" {
   }
 }
 
+
+# Allow the Development EC2 instance to retrieve
+# only its Cloudflare Tunnel authentication token.
+
+data "aws_iam_policy_document" "cloudflare_tunnel_token" {
+  statement {
+    sid    = "ReadCloudflareTunnelToken"
+    effect = "Allow"
+
+    actions = [
+      "ssm:GetParameter"
+    ]
+
+    resources = [
+      "arn:aws:ssm:us-east-2:920394550130:parameter/nextsitrep/development/cloudflare/tunnel-token"
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "cloudflare_tunnel_token" {
+  name   = "nextsitrep-development-cloudflare-token-read"
+  role   = aws_iam_role.development_ec2.id
+  policy = data.aws_iam_policy_document.cloudflare_tunnel_token.json
+}
