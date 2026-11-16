@@ -38,6 +38,7 @@ services:
 
     environment:
       SPRING_PROFILES_ACTIVE: aws-dev
+      TRUSTED_PROXY_IPS: "172.19.0.10"
 
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:?POSTGRES_DB is required}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:?POSTGRES_USER is required}
@@ -94,6 +95,7 @@ services:
       NODE_ENV: production
       SITE_URL: https://dev.nextsitrep.org
       SITE_INDEXING_ENABLED: "false"
+      HTTPS_DEPLOYMENT: "true"
       NEXTSITREP_CONTACT_EMAIL: help@nextsitrep.org
 
     depends_on:
@@ -101,7 +103,8 @@ services:
         condition: service_healthy
 
     networks:
-      - application
+      application:
+        ipv4_address: 172.19.0.10
 
   cloudflared:
     image: cloudflare/cloudflared:2025.11.1
@@ -134,4 +137,6 @@ networks:
     internal: true
 
   application:
-    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.19.0.0/16
