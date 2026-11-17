@@ -57,6 +57,7 @@ services:
       AUTH_RATE_LIMIT_TRUST_FORWARDED_HEADERS: "false"
 
       VA_API_BASE_URL: https://sandbox-api.va.gov
+      VA_API_KEY: ${VA_API_KEY:?VA_API_KEY is required}
       GEOCODING_USER_AGENT: "NextSITREP/1.0 (+https://nextsitrep.org)"
 
     depends_on:
