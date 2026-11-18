@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "id": "GHSA-fc5q-39xc-vjpf",
+    "ecosystem": "npm",
+    "name": "picomatch",
+    "version": "4.0.7",
+    "owner": "cishocksr",
+    "reason": "Temporary risk acceptance for a transitive development/test dependency. Exposure assessment and remediation tracked in issue #27.",
+    "tracking_url": "https://github.com/cishocksr/NextSITREP/issues/27",
+    "approved_by": "cishocksr",
+    "approved_on": "2026-11-17",
+    "expires": "2026-12-01"
+  }
+]
